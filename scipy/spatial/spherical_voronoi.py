@@ -5,57 +5,52 @@ Spherical Voronoi Code
 
 """
 #
-# Copyright (C)  Tyler Reddy, Ross Hemsley, Edd Edmondson, Nikolai Nowaczyk, Joe Pitt-Francis, 2015.
+# Copyright (C)  Tyler Reddy, Ross Hemsley, Edd Edmondson,
+#                Nikolai Nowaczyk, Joe Pitt-Francis, 2015.
 #
 # Distributed under the same BSD license as Scipy.
 #
 
 import numpy as np
+import numpy.matlib
 import scipy
 import math
 
 __all__ = ['SphericalVoronoi']
 
 
-def calc_circumcenter_circumsphere_tetrahedron_vectorized(tetrahedron_coord_array):
-    """ Get the cirumcenters of the circumspheres of tetrahedrons.
+def calc_circumcenters(tetrahedrons):
+    """ Calculates the cirumcenters of the circumspheres of tetrahedrons.
 
-    An alternative implementation based on
+    An implementation based on
     http://mathworld.wolfram.com/Circumsphere.html
-    because of issues with the initial implementation from the Berkeley page.
 
-    Vectorized version for use with multiple tetrahedra in
-    tetrahedron_coord_array -- the latter should have shape (N, 4, 3).'''
+    Parameters
+    ----------
+    tetrahedrons : an array of shape (N, 4, 3)
+        consisting of N tetrahedrons defined by 4 points in 3D
+
+    Returns
+    ----------
+    circumcenters : an array of shape (N, 3)
+        consisting of the N circumcenters of the tetrahedrons in 3D
 
     """
 
-    num_tetrahedra = tetrahedron_coord_array.shape[0]
-    #reshape the tetrahedron_coord_array to place all tetrahedra consecutively without nesting
-    tetrahedron_coord_array = np.reshape(tetrahedron_coord_array, (tetrahedron_coord_array.shape[0] * tetrahedron_coord_array.shape[1], tetrahedron_coord_array.shape[2]))
-    array_stacked_a_matrices = np.hstack((tetrahedron_coord_array, np.ones((num_tetrahedra * 4, 1))))
-    first_column_array_determinant_arrays = tetrahedron_coord_array[...,0] ** 2 + tetrahedron_coord_array[...,1] ** 2 + tetrahedron_coord_array[...,2] ** 2
-    first_column_array_determinant_arrays = first_column_array_determinant_arrays[:,np.newaxis]
-    final_column_array_determinant_arrays = np.ones((first_column_array_determinant_arrays.shape[0],1))
-    array_D_x_contents_before_determinant_calculation = np.hstack((first_column_array_determinant_arrays, tetrahedron_coord_array[...,1:],final_column_array_determinant_arrays))
-    array_middle_column_arrays_D_y = np.hstack((np.reshape(tetrahedron_coord_array[...,0], (tetrahedron_coord_array.shape[0],1)), np.reshape(tetrahedron_coord_array[...,2], (tetrahedron_coord_array.shape[0],1))))
-    array_D_y_contents_before_determinant_calculation = np.hstack((first_column_array_determinant_arrays, array_middle_column_arrays_D_y, final_column_array_determinant_arrays))
-    array_D_z_contents_before_determinant_calculation = np.hstack((first_column_array_determinant_arrays, tetrahedron_coord_array[...,:-1],final_column_array_determinant_arrays))
-    #split the arrays back to stacks of matrices
-    array_D_x_contents_before_determinant_calculation = np.array(np.split(array_D_x_contents_before_determinant_calculation, num_tetrahedra))
-    array_D_y_contents_before_determinant_calculation = np.array(np.split(array_D_y_contents_before_determinant_calculation, num_tetrahedra))
-    array_D_z_contents_before_determinant_calculation = np.array(np.split(array_D_z_contents_before_determinant_calculation, num_tetrahedra))
-    array_a_contents_before_determinant_calculation = np.array(np.split(array_stacked_a_matrices, num_tetrahedra))
-    #compute the determinants for the stacks of matrices assembled above
-    array_Dx_values = np.linalg.det(array_D_x_contents_before_determinant_calculation)
-    array_Dy_values = - np.linalg.det(array_D_y_contents_before_determinant_calculation)
-    array_Dz_values = np.linalg.det(array_D_z_contents_before_determinant_calculation)
-    array_a_values = np.linalg.det(array_a_contents_before_determinant_calculation)
-    array_denominator_values = 2. * array_a_values
-    array_x0_values = array_Dx_values / array_denominator_values
-    array_y0_values = array_Dy_values / array_denominator_values
-    array_z0_values = array_Dz_values / array_denominator_values
-    circumcenter_array = np.column_stack((array_x0_values, array_y0_values, array_z0_values))
-    return circumcenter_array
+    num = tetrahedrons.shape[0]
+    a = np.concatenate((tetrahedrons, np.ones((num, 4, 1))), axis=2)
+
+    sums = np.sum(tetrahedrons ** 2, axis=2)
+    d = np.concatenate((sums[:, :, np.newaxis], a), axis=2)
+
+    dx = np.linalg.det(np.delete(d, 1, axis=2))
+    dy = -np.linalg.det(np.delete(d, 2, axis=2))
+    dz = np.linalg.det(np.delete(d, 3, axis=2))
+
+    nominator = np.vstack((dx, dy, dz))
+    denominator = np.matlib.repmat(2 * np.linalg.det(a), 3, 1)
+    return (nominator / denominator).transpose()
+
 
 def convert_cartesian_array_to_spherical_array(coord_array,angle_measure='radians'):
     '''Take shape (N,3) cartesian coord_array and return an array of the same shape in spherical polar form (r, theta, phi). Based on StackOverflow response: http://stackoverflow.com/a/4116899
@@ -363,7 +358,7 @@ class SphericalVoronoi:
         simplex_coords = tri.points[tri.simplices] #triangles on sphere surface
         simplex_coords = np.insert(simplex_coords, 3, np.zeros((1,3)), axis = 1)
         #step 3: produce circumspheres / circumcenters of tetrahedra from 3D Delaunay
-        array_circumcenter_coords = calc_circumcenter_circumsphere_tetrahedron_vectorized(simplex_coords)
+        array_circumcenter_coords = calc_circumcenters(simplex_coords)
         #step 4: project tetrahedron circumcenters up to the surface of the sphere, to produce the Voronoi vertices
         array_vector_lengths = scipy.spatial.distance.cdist(array_circumcenter_coords, np.zeros((1,3)))
         array_Voronoi_vertices = (self.estimated_sphere_radius / np.abs(array_vector_lengths)) * array_circumcenter_coords
