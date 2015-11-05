@@ -14,7 +14,7 @@ Spherical Voronoi Code
 import numpy as np
 import numpy.matlib
 import scipy
-import math
+import itertools
 from scipy._lib._version import NumpyVersion
 
 # Whether Numpy has stacked matrix linear algebra
@@ -130,7 +130,7 @@ class SphericalVoronoi:
     Parameters
     ----------
     points : ndarray of floats, shape (npoints, 3)
-        Coordinates of points to construct a spherical 
+        Coordinates of points to construct a spherical
         Voronoi diagram from
     radius : float, optional
         Radius of the sphere (Default: 1)
@@ -198,18 +198,16 @@ class SphericalVoronoi:
 
     >>> from matplotlib import colors
     >>> from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-    >>> import numpy as np
     >>> import matplotlib.pyplot as plt
-    >>> from scipy.spatial import spherical_voronoi
+    >>> from scipy.spatial import SphericalVoronoi
     >>> from mpl_toolkits.mplot3d import proj3d
-    >>> import scipy as sp
     >>> # set input data
     >>> points = np.array([[0, 0, 1], [0, 0, -1], [1, 0, 0],
     ...                    [0, 1, 0], [0, -1, 0], [-1, 0, 0], ])
     >>> center = np.array([0, 0, 0])
     >>> radius = 1
     >>> # calculate spherical Voronoi diagram
-    >>> sv = spherical_voronoi.SphericalVoronoi(points, radius, center)
+    >>> sv = SphericalVoronoi(points, radius, center)
     >>> # sort vertices (optional, helpful for plotting)
     >>> sv.sort_vertices_of_regions()
     >>> # generate plot
@@ -225,10 +223,11 @@ class SphericalVoronoi:
     >>> # plot generator points
     >>> ax.scatter(points[:, 0], points[:, 1], points[:, 2], c='b')
     >>> # plot Voronoi vertices
-    >>> ax.scatter(sv.vertices[:, 0], sv.vertices[:, 1], sv.vertices[:, 2], c='g')
+    >>> ax.scatter(sv.vertices[:, 0], sv.vertices[:, 1], sv.vertices[:, 2],
+    ...                    c='g')
     >>> # indicate Voronoi regions (as Euclidean polygons)
     >>> for region in sv.regions:
-    ...    random_color = colors.rgb2hex(sp.rand(3))
+    ...    random_color = colors.rgb2hex(np.random.rand(3))
     ...    polygon = Poly3DCollection([sv.vertices[region]], alpha=1.0)
     ...    polygon.set_color(random_color)
     ...    ax.add_collection3d(polygon)
@@ -298,9 +297,24 @@ class SphericalVoronoi:
         )
 
         # calculate regions from triangulation
-        self.regions = [[k for k in range(0, len(self._tri.simplices))
-                         if n in self._tri.simplices[k]]
-                        for n in range(0, len(self.points))]
+        generator_indices = np.arange(self.points.shape[0])
+        filter_tuple = np.where((np.expand_dims(self._tri.simplices,
+                                -1) == generator_indices).any(axis=1))
+
+        list_tuples_associations = zip(filter_tuple[1],
+                                       filter_tuple[0])
+
+        list_tuples_associations = sorted(list_tuples_associations,
+                                          key=lambda t: t[0])
+
+        # group by generator indices to produce
+        # unsorted regions in nested list
+        groups = []
+        for k, g in itertools.groupby(list_tuples_associations,
+                                      lambda t: t[0]):
+            groups.append([element[1] for element in list(g)])
+
+        self.regions = groups
 
     def sort_vertices_of_regions(self):
         """
