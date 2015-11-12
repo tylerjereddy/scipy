@@ -37,7 +37,7 @@ import numpy as np
 from .linesearch import (line_search_wolfe1, line_search_wolfe2,
                          line_search_wolfe2 as line_search,
                          LineSearchWarning)
-from inspect import getargspec
+from scipy._lib._util import getargspec_no_self as _getargspec
 
 
 # standard status messages of optimizers
@@ -86,10 +86,14 @@ class OptimizeResult(dict):
         underlying solver. Refer to `message` for details.
     message : str
         Description of the cause of the termination.
-    fun, jac, hess, hess_inv : ndarray
-        Values of objective function, Jacobian, Hessian or its inverse (if
+    fun, jac, hess: ndarray
+        Values of objective function, its Jacobian and its Hessian (if
         available). The Hessians may be approximations, see the documentation
         of the function in question.
+    hess_inv : object
+        Inverse of the objective function's Hessian; may be an approximation.
+        Not available for all solvers. The type of this attribute may be
+        either np.ndarray or scipy.sparse.linalg.LinearOperator.
     nfev, njev, nhev : int
         Number of evaluations of the objective functions and of its
         Jacobian and Hessian.
@@ -537,7 +541,7 @@ def _minimize_neldermead(func, x0, args=(), callback=None,
 
     result = OptimizeResult(fun=fval, nit=iterations, nfev=fcalls[0],
                             status=warnflag, success=(warnflag == 0),
-                            message=msg, x=x)
+                            message=msg, x=x, final_simplex=(sim, fsim))
     if retall:
         result['allvecs'] = allvecs
     return result
@@ -1870,11 +1874,11 @@ def brent(func, args=(), brack=None, tol=1.48e-8, full_output=0, maxiter=500):
     args : tuple, optional
         Additional arguments (if present).
     brack : tuple, optional
-        Triple (a,b,c) where (a<b<c) and func(b) <
-        func(a),func(c).  If bracket consists of two numbers (a,c)
-        then they are assumed to be a starting interval for a
-        downhill bracket search (see `bracket`); it doesn't always
-        mean that the obtained solution will satisfy a<=x<=c.
+        Either a triple (xa,xb,xc) where xa<xb<xc and func(xb) <
+        func(xa), func(xc) or a pair (xa,xb) which are used as a
+        starting interval for a downhill bracket search (see
+        `bracket`). Providing the pair (xa,xb) does not always mean
+        the obtained solution will satisfy xa<=x<=xb.
     tol : float, optional
         Stop if between iteration change is less than `tol`.
     full_output : bool, optional
@@ -2245,7 +2249,7 @@ def fmin_powell(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None,
     over each current direction in the direction set. At the end
     of the inner loop, if certain conditions are met, the direction
     that gave the largest decrease is dropped and replaced with
-    the difference between the current estiamted x and the estimated
+    the difference between the current estimated x and the estimated
     x from the beginning of the inner-loop.
 
     The technical conditions for replacing the direction of greatest
@@ -2615,7 +2619,7 @@ def brute(func, ranges, args=(), Ns=20, full_output=0, finish=fmin,
         xmin = xmin[0]
     if callable(finish):
         # set up kwargs for `finish` function
-        finish_args = getargspec(finish).args
+        finish_args = _getargspec(finish).args
         finish_kwargs = dict()
         if 'full_output' in finish_args:
             finish_kwargs['full_output'] = 1

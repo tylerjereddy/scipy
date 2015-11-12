@@ -5,11 +5,11 @@
 from __future__ import division, print_function, absolute_import
 
 from scipy._lib.six import string_types, exec_
+from scipy._lib._util import getargspec_no_self as _getargspec
 
 import sys
 import keyword
 import re
-import inspect
 import types
 import warnings
 
@@ -17,8 +17,7 @@ from scipy.misc import doccer
 from ._distr_params import distcont, distdiscrete
 from scipy._lib._util import check_random_state
 
-from scipy.special import (comb, chndtr, gammaln, hyp0f1,
-                           entr, kl_div)
+from scipy.special import (comb, chndtr, gammaln, entr, kl_div, xlogy, ive)
 
 # for root finding for discrete distribution ppf, and max likelihood estimation
 from scipy import optimize
@@ -612,9 +611,14 @@ def _parse_args_stats(self, %(shape_arg_str)s %(locscale_in)s, moments='mv'):
 # I think the function name ncx2 is an abbreviation for noncentral chi squared.
 
 def _ncx2_log_pdf(x, df, nc):
-    a = asarray(df/2.0)
-    fac = -nc/2.0 - x/2.0 + (a-1)*log(x) - a*log(2) - gammaln(a)
-    return fac + np.nan_to_num(log(hyp0f1(a, nc * x/4.0)))
+    # We use (xs**2 + ns**2)/2 = (xs - ns)**2/2  + xs*ns, and include the factor
+    # of exp(-xs*ns) into the ive function to improve numerical stability
+    # at large values of xs. See also `rice.pdf`.
+    df2 = df/2.0 - 1.0
+    xs, ns = np.sqrt(x), np.sqrt(nc)
+    res = xlogy(df2/2.0, x/nc) - 0.5*(xs - ns)**2
+    res += np.log(ive(df2, xs*ns) / 2.0)
+    return res
 
 
 def _ncx2_pdf(x, df, nc):
@@ -634,7 +638,7 @@ class rv_generic(object):
         super(rv_generic, self).__init__()
 
         # figure out if _stats signature has 'moments' keyword
-        sign = inspect.getargspec(self._stats)
+        sign = _getargspec(self._stats)
         self._stats_has_moments = ((sign[2] is not None) or
                                    ('moments' in sign[0]))
         self._random_state = check_random_state(seed)
@@ -687,15 +691,17 @@ class rv_generic(object):
                         'shapes must be valid python identifiers')
         else:
             # find out the call signatures (_pdf, _cdf etc), deduce shape
-            # arguments
+            # arguments. Generic methods only have 'self, x', any further args
+            # are shapes.
             shapes_list = []
             for meth in meths_to_inspect:
-                shapes_args = inspect.getargspec(meth)
-                shapes_list.append(shapes_args.args)
+                shapes_args = _getargspec(meth)   # NB: does not contain self
+                args = shapes_args.args[1:]       # peel off 'x', too
 
-                # *args or **kwargs are not allowed w/automatic shapes
-                # (generic methods have 'self, x' only)
-                if len(shapes_args.args) > 2:
+                if args:
+                    shapes_list.append(args)
+
+                    # *args or **kwargs are not allowed w/automatic shapes
                     if shapes_args.varargs is not None:
                         raise TypeError(
                             '*args are not allowed w/out explicit shapes')
@@ -705,14 +711,15 @@ class rv_generic(object):
                     if shapes_args.defaults is not None:
                         raise TypeError('defaults are not allowed for shapes')
 
-            shapes = max(shapes_list, key=lambda x: len(x))
-            shapes = shapes[2:]  # remove self, x,
+            if shapes_list:
+                shapes = shapes_list[0]
 
-            # make sure the signatures are consistent
-            # (generic methods have 'self, x' only)
-            for item in shapes_list:
-                if len(item) > 2 and item[2:] != shapes:
-                    raise TypeError('Shape arguments are inconsistent.')
+                # make sure the signatures are consistent
+                for item in shapes_list:
+                    if item != shapes:
+                        raise TypeError('Shape arguments are inconsistent.')
+            else:
+                shapes = []
 
         # have the arguments, construct the method from template
         shapes_str = ', '.join(shapes) + ', ' if shapes else ''  # NB: not None
@@ -966,8 +973,9 @@ class rv_generic(object):
             else:
                 if mu2 is None:
                     mu2 = self._munp(2, *goodargs)
-                # (mu2**1.5) breaks down for nan and inf
-                mu3 = g1 * np.power(mu2, 1.5)
+                if g2 is None:
+                    # (mu2**1.5) breaks down for nan and inf
+                    mu3 = g1 * np.power(mu2, 1.5)
 
             if 'm' in moments:
                 if mu is None:
@@ -1588,11 +1596,12 @@ class rv_continuous(rv_generic):
         args, loc, scale = self._parse_args(*args, **kwds)
         x, loc, scale = map(asarray, (x, loc, scale))
         args = tuple(map(asarray, args))
-        x = asarray((x-loc)*1.0/scale)
+        dtyp = np.find_common_type([x.dtype, np.float64], [])
+        x = np.asarray((x - loc)/scale, dtype=dtyp)
         cond0 = self._argcheck(*args) & (scale > 0)
         cond1 = (scale > 0) & (x >= self.a) & (x <= self.b)
         cond = cond0 & cond1
-        output = zeros(shape(cond), 'd')
+        output = zeros(shape(cond), dtyp)
         putmask(output, (1-cond0)+np.isnan(x), self.badvalue)
         if any(cond):
             goodargs = argsreduce(cond, *((x,)+args+(scale,)))
@@ -1629,11 +1638,12 @@ class rv_continuous(rv_generic):
         args, loc, scale = self._parse_args(*args, **kwds)
         x, loc, scale = map(asarray, (x, loc, scale))
         args = tuple(map(asarray, args))
-        x = asarray((x-loc)*1.0/scale)
+        dtyp = np.find_common_type([x.dtype, np.float64], [])
+        x = np.asarray((x - loc)/scale, dtype=dtyp)
         cond0 = self._argcheck(*args) & (scale > 0)
         cond1 = (scale > 0) & (x >= self.a) & (x <= self.b)
         cond = cond0 & cond1
-        output = empty(shape(cond), 'd')
+        output = empty(shape(cond), dtyp)
         output.fill(NINF)
         putmask(output, (1-cond0)+np.isnan(x), self.badvalue)
         if any(cond):
@@ -1669,12 +1679,13 @@ class rv_continuous(rv_generic):
         args, loc, scale = self._parse_args(*args, **kwds)
         x, loc, scale = map(asarray, (x, loc, scale))
         args = tuple(map(asarray, args))
-        x = (x-loc)*1.0/scale
+        dtyp = np.find_common_type([x.dtype, np.float64], [])
+        x = np.asarray((x - loc)/scale, dtype=dtyp)
         cond0 = self._argcheck(*args) & (scale > 0)
         cond1 = (scale > 0) & (x > self.a) & (x < self.b)
         cond2 = (x >= self.b) & cond0
         cond = cond0 & cond1
-        output = zeros(shape(cond), 'd')
+        output = zeros(shape(cond), dtyp)
         place(output, (1-cond0)+np.isnan(x), self.badvalue)
         place(output, cond2, 1.0)
         if any(cond):  # call only if at least 1 entry
@@ -1709,12 +1720,13 @@ class rv_continuous(rv_generic):
         args, loc, scale = self._parse_args(*args, **kwds)
         x, loc, scale = map(asarray, (x, loc, scale))
         args = tuple(map(asarray, args))
-        x = (x-loc)*1.0/scale
+        dtyp = np.find_common_type([x.dtype, np.float64], [])
+        x = np.asarray((x - loc)/scale, dtype=dtyp)
         cond0 = self._argcheck(*args) & (scale > 0)
         cond1 = (scale > 0) & (x > self.a) & (x < self.b)
         cond2 = (x >= self.b) & cond0
         cond = cond0 & cond1
-        output = empty(shape(cond), 'd')
+        output = empty(shape(cond), dtyp)
         output.fill(NINF)
         place(output, (1-cond0)*(cond1 == cond1)+np.isnan(x), self.badvalue)
         place(output, cond2, 0.0)
@@ -1750,12 +1762,13 @@ class rv_continuous(rv_generic):
         args, loc, scale = self._parse_args(*args, **kwds)
         x, loc, scale = map(asarray, (x, loc, scale))
         args = tuple(map(asarray, args))
-        x = (x-loc)*1.0/scale
+        dtyp = np.find_common_type([x.dtype, np.float64], [])
+        x = np.asarray((x - loc)/scale, dtype=dtyp)
         cond0 = self._argcheck(*args) & (scale > 0)
         cond1 = (scale > 0) & (x > self.a) & (x < self.b)
         cond2 = cond0 & (x <= self.a)
         cond = cond0 & cond1
-        output = zeros(shape(cond), 'd')
+        output = zeros(shape(cond), dtyp)
         place(output, (1-cond0)+np.isnan(x), self.badvalue)
         place(output, cond2, 1.0)
         if any(cond):
@@ -1793,12 +1806,13 @@ class rv_continuous(rv_generic):
         args, loc, scale = self._parse_args(*args, **kwds)
         x, loc, scale = map(asarray, (x, loc, scale))
         args = tuple(map(asarray, args))
-        x = (x-loc)*1.0/scale
+        dtyp = np.find_common_type([x.dtype, np.float64], [])
+        x = np.asarray((x - loc)/scale, dtype=dtyp)
         cond0 = self._argcheck(*args) & (scale > 0)
         cond1 = (scale > 0) & (x > self.a) & (x < self.b)
         cond2 = cond0 & (x <= self.a)
         cond = cond0 & cond1
-        output = empty(shape(cond), 'd')
+        output = empty(shape(cond), dtyp)
         output.fill(NINF)
         place(output, (1-cond0)+np.isnan(x), self.badvalue)
         place(output, cond2, 0.0)
@@ -2696,7 +2710,9 @@ class rv_discrete(rv_generic):
                                                  self, rv_discrete)
             self.moment_gen = instancemethod(_drv_moment_gen,
                                              self, rv_discrete)
-            self._construct_argparser(meths_to_inspect=[_drv_pmf],
+
+            self.shapes = ' '   # bypass inspection 
+            self._construct_argparser(meths_to_inspect=[self._pmf],
                                       locscale_in='loc=0',
                                       # scale=1 for discrete RVs
                                       locscale_out='loc, 1')
@@ -2975,7 +2991,7 @@ class rv_discrete(rv_generic):
         args = tuple(map(asarray, args))
         k = asarray(k-loc)
         cond0 = self._argcheck(*args)
-        cond1 = (k >= self.a) & (k <= self.b)
+        cond1 = (k >= self.a) & (k < self.b)
         cond2 = (k < self.a) & cond0
         cond = cond0 & cond1
         output = zeros(shape(cond), 'd')
@@ -3016,7 +3032,7 @@ class rv_discrete(rv_generic):
         args = tuple(map(asarray, args))
         k = asarray(k-loc)
         cond0 = self._argcheck(*args)
-        cond1 = (k >= self.a) & (k <= self.b)
+        cond1 = (k >= self.a) & (k < self.b)
         cond2 = (k < self.a) & cond0
         cond = cond0 & cond1
         output = empty(shape(cond), 'd')
@@ -3212,11 +3228,7 @@ class rv_discrete(rv_generic):
         else:
             ub = ub - loc   # convert bound for standardized distribution
         if conditional:
-            if np.isposinf(ub)[()]:
-                # work around bug: stats.poisson.sf(stats.poisson.b, 2) is nan
-                invfac = 1 - self.cdf(lb-1, *args)
-            else:
-                invfac = 1 - self.cdf(lb-1, *args) - self.sf(ub, *args)
+            invfac = self.sf(lb-1, *args) - self.sf(ub, *args)
         else:
             invfac = 1.0
 

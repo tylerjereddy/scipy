@@ -10,6 +10,7 @@ import numpy as np
 import scipy.sparse
 
 cimport numpy as np
+from numpy.math cimport INFINITY
     
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
@@ -21,21 +22,20 @@ import threading
 cdef extern from "limits.h":
     long LONG_MAX
     
-cdef extern from "ckdtree_cpp_methods.h":
+cdef extern from "ckdtree_cpp_methods.h" nogil:
     int number_of_processors
-    np.float64_t infinity
     np.float64_t dmax(np.float64_t x, np.float64_t y)
     np.float64_t dabs(np.float64_t x)
     np.float64_t _distance_p(np.float64_t *x, np.float64_t *y,
                        np.float64_t p, np.intp_t k, np.float64_t upperbound)
-infinity = np.inf
+    bint isinf "ckdtree_isinf"(np.float64_t)
 number_of_processors = cpu_count()
 
 from libcpp.vector cimport vector
 
 __all__ = ['cKDTree']
 
-    
+
 # Borrowed references
 # ===================
 
@@ -350,7 +350,7 @@ cdef class RectRectDistanceTracker(object):
         self.p = p
         
         # internally we represent all distances as distance ** p
-        if p != infinity and upper_bound != infinity:
+        if not (isinf(p) or isinf(upper_bound)):
             self.upper_bound = upper_bound ** p
         else:
             self.upper_bound = upper_bound
@@ -358,7 +358,7 @@ cdef class RectRectDistanceTracker(object):
         # fiddle approximation factor
         if eps == 0:
             self.epsfac = 1
-        elif p == infinity:
+        elif isinf(p):
             self.epsfac = 1 / (1 + eps)
         else:
             self.epsfac = 1 / (1 + eps) ** p
@@ -366,7 +366,7 @@ cdef class RectRectDistanceTracker(object):
         self._init_stack()
 
         # Compute initial min and max distances
-        if self.p == infinity:
+        if isinf(self.p):
             self.min_distance = min_dist_rect_rect_p_inf(rect1, rect2)
             self.max_distance = max_dist_rect_rect_p_inf(rect1, rect2)
         else:
@@ -403,7 +403,7 @@ cdef class RectRectDistanceTracker(object):
         item.max_along_dim = rect.maxes[split_dim]
 
         # Update min/max distances
-        if self.p != infinity:
+        if not isinf(self.p):
             self.min_distance -= min_dist_interval_interval_p(self.rect1, self.rect2, split_dim, self.p)
             self.max_distance -= max_dist_interval_interval_p(self.rect1, self.rect2, split_dim, self.p)
 
@@ -412,7 +412,7 @@ cdef class RectRectDistanceTracker(object):
         else:
             rect.mins[split_dim] = split_val
 
-        if self.p != infinity:
+        if not isinf(self.p):
             self.min_distance += min_dist_interval_interval_p(self.rect1, self.rect2, split_dim, self.p)
             self.max_distance += max_dist_interval_interval_p(self.rect1, self.rect2, split_dim, self.p)
         else:
@@ -525,7 +525,7 @@ cdef class PointRectDistanceTracker(object):
         self.p = p
         
         # internally we represent all distances as distance ** p
-        if p != infinity and upper_bound != infinity:
+        if not (isinf(p) or isinf(upper_bound)):
             self.upper_bound = upper_bound ** p
         else:
             self.upper_bound = upper_bound
@@ -533,7 +533,7 @@ cdef class PointRectDistanceTracker(object):
         # fiddle approximation factor
         if eps == 0:
             self.epsfac = 1
-        elif p == infinity:
+        elif isinf(p):
             self.epsfac = 1 / (1 + eps)
         else:
             self.epsfac = 1 / (1 + eps) ** p
@@ -541,7 +541,7 @@ cdef class PointRectDistanceTracker(object):
         self._init_stack()
 
         # Compute initial min and max distances
-        if self.p == infinity:
+        if isinf(self.p):
             self.min_distance = min_dist_point_rect_p_inf(pt, rect)
             self.max_distance = max_dist_point_rect_p_inf(pt, rect)
         else:
@@ -571,7 +571,7 @@ cdef class PointRectDistanceTracker(object):
         item.min_along_dim = self.rect.mins[split_dim]
         item.max_along_dim = self.rect.maxes[split_dim]
             
-        if self.p != infinity:
+        if not isinf(self.p):
             self.min_distance -= min_dist_point_interval_p(self.pt, self.rect,
                                                            split_dim, self.p)
             self.max_distance -= max_dist_point_interval_p(self.pt, self.rect,
@@ -582,7 +582,7 @@ cdef class PointRectDistanceTracker(object):
         else:
             self.rect.mins[split_dim] = split_val
 
-        if self.p != infinity:
+        if not isinf(self.p):
             self.min_distance += min_dist_point_interval_p(self.pt, self.rect,
                                                            split_dim, self.p)
             self.max_distance += max_dist_point_interval_p(self.pt, self.rect,
@@ -1244,7 +1244,7 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
     
     @cython.boundscheck(False)
     def query(cKDTree self, object x, np.intp_t k=1, np.float64_t eps=0,
-              np.float64_t p=2, np.float64_t distance_upper_bound=infinity,
+              np.float64_t p=2, np.float64_t distance_upper_bound=INFINITY,
               np.intp_t n_jobs=1):
         """
         query(self, x, k=1, eps=0, p=2, distance_upper_bound=np.inf, n_jobs=1)
@@ -1308,7 +1308,7 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
         n = <np.intp_t> np.prod(retshape)
         xx = np.ascontiguousarray(x_arr).reshape(n, self.m)
         dd = np.empty((n,k),dtype=np.float64)
-        dd.fill(infinity)
+        dd.fill(INFINITY)
         ii = np.empty((n,k),dtype=np.intp)
         ii.fill(self.n)
         
@@ -2047,9 +2047,9 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
         n_queries = real_r.shape[0]
 
         # Internally, we represent all distances as distance ** p
-        if p != infinity:
+        if not isinf(p):
             for i in range(n_queries):
-                if real_r[i] != infinity:
+                if not isinf(real_r[i]):
                     real_r[i] = real_r[i] ** p
 
         # Track node-to-node min/max distances
@@ -2080,42 +2080,29 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
                                                coo_entries results,
                                                ckdtreenode *node1, ckdtreenode *node2,
                                                RectRectDistanceTracker tracker) except -1:
-        cdef ckdtreenode *lnode1
-        cdef ckdtreenode *lnode2
         cdef list results_i
         cdef np.float64_t d
         cdef np.intp_t i, j, min_j
                 
         if tracker.min_distance > tracker.upper_bound:
             return 0
+                   
         elif node1.split_dim == -1:  # 1 is leaf node
-            lnode1 = node1
             
             if node2.split_dim == -1:  # 1 & 2 are leaves
-                lnode2 = node2
-                
                 # brute-force
-                for i in range(lnode1.start_idx, lnode1.end_idx):
-                    # Special care here to avoid duplicate pairs
-                    if node1 == node2:
-                        min_j = i+1
-                    else:
-                        min_j = lnode2.start_idx
-                        
-                    for j in range(min_j, lnode2.end_idx):
+                for i in range(node1.start_idx, node1.end_idx):
+                    for j in range(node2.start_idx, node2.end_idx):
                         d = _distance_p(
                             self.raw_data + self.raw_indices[i] * self.m,
                             other.raw_data + other.raw_indices[j] * self.m,
                             tracker.p, self.m, tracker.upper_bound)
                         if d <= tracker.upper_bound:
-                            if tracker.p != 1 and tracker.p != infinity:
+                            if tracker.p != 1 and not isinf(tracker.p):
                                 d = d**(1. / tracker.p)
                             results.add(self.raw_indices[i],
                                         other.raw_indices[j], d)
-                            if node1 == node2:
-                                results.add(self.raw_indices[j],
-                                            other.raw_indices[i], d)
-
+                                        
             else:  # 1 is a leaf node, 2 is inner node
                 tracker.push_less_of(2, node2)
                 self.__sparse_distance_matrix_traverse(
@@ -2153,15 +2140,10 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
                 tracker.pop()
                     
                 tracker.push_greater_of(1, node1)
-                if node1 != node2:
-                    # Avoid traversing (node1.less, node2.greater) and
-                    # (node1.greater, node2.less) (it's the same node pair
-                    # twice over, which is the source of the complication in
-                    # the original KDTree.sparse_distance_matrix)
-                    tracker.push_less_of(2, node2)
-                    self.__sparse_distance_matrix_traverse(
+                tracker.push_less_of(2, node2)
+                self.__sparse_distance_matrix_traverse(
                         other, results, node1.greater, node2.less, tracker)
-                    tracker.pop()
+                tracker.pop()
                     
                 tracker.push_greater_of(2, node2)
                 self.__sparse_distance_matrix_traverse(
@@ -2170,7 +2152,6 @@ cdef public class cKDTree [object ckdtree, type ckdtree_type]:
                 tracker.pop()
                 
         return 0
-            
 
     def sparse_distance_matrix(cKDTree self, cKDTree other,
                                np.float64_t max_distance,

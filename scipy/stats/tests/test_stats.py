@@ -751,10 +751,10 @@ class TestFindRepeats(TestCase):
 
     def test_empty_result(self):
         # Check that empty arrays are returned when there are no repeats.
-        a = [10, 20, 50, 30, 40]
-        repeated, counts = stats.find_repeats(a)
-        assert_array_equal(repeated, [])
-        assert_array_equal(counts, [])
+        for a in [[10, 20, 50, 30, 40], []]:
+            repeated, counts = stats.find_repeats(a)
+            assert_array_equal(repeated, [])
+            assert_array_equal(counts, [])
 
 
 class TestRegression(TestCase):
@@ -859,6 +859,40 @@ class TestRegression(TestCase):
         attributes = ('slope', 'intercept', 'rvalue', 'pvalue', 'stderr')
         check_named_results(res, attributes)
 
+    def test_nist_norris(self):
+        x = [0.2, 337.4, 118.2, 884.6, 10.1, 226.5, 666.3, 996.3, 448.6, 777.0,
+             558.2, 0.4, 0.6, 775.5, 666.9, 338.0, 447.5, 11.6, 556.0, 228.1,
+             995.8, 887.6, 120.2, 0.3, 0.3, 556.8, 339.1, 887.2, 999.0, 779.0,
+             11.1, 118.3, 229.2, 669.1, 448.9, 0.5]
+
+        y = [0.1, 338.8, 118.1, 888.0, 9.2, 228.1, 668.5, 998.5, 449.1, 778.9,
+             559.2, 0.3, 0.1, 778.1, 668.8, 339.3, 448.9, 10.8, 557.7, 228.3,
+             998.0, 888.8, 119.6, 0.3, 0.6, 557.6, 339.3, 888.0, 998.5, 778.9,
+             10.2, 117.6, 228.9, 668.4, 449.2, 0.2]
+
+        # Expected values
+        exp_slope = 1.00211681802045
+        exp_intercept = -0.262323073774029
+        exp_rvalue = 0.999993745883712
+
+        actual = stats.linregress(x, y)
+
+        assert_almost_equal(actual.slope, exp_slope)
+        assert_almost_equal(actual.intercept, exp_intercept)
+        assert_almost_equal(actual.rvalue, exp_rvalue, decimal=5)
+
+    def test_empty_input(self):
+        assert_raises(ValueError, stats.linregress, [], [])
+
+    def test_nan_input(self):
+        x = np.arange(10.)
+        x[9] = np.nan
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            assert_array_equal(stats.linregress(x, x),
+                               (np.nan, np.nan, np.nan, np.nan, np.nan))
+
 
 def test_theilslopes():
     # Basic slope test.
@@ -911,7 +945,10 @@ class TestHistogram(TestCase):
                                           -1.2222222222222223, 0.44444444444444448, 0)),
                        )
         for inputs, expected_results in basic_tests:
-            given_results = stats.histogram(inputs)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                given_results = stats.histogram(inputs)
+
             assert_array_almost_equal(expected_results[0], given_results[0],
                                       decimal=2)
             for i in range(1, 4):
@@ -919,7 +956,9 @@ class TestHistogram(TestCase):
                                     decimal=2)
 
     def test_empty(self):
-        res = stats.histogram([])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            res = stats.histogram([])
 
         # expected values
         e_count = [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]
@@ -931,39 +970,6 @@ class TestHistogram(TestCase):
         assert_equal(res.lowerlimit, e_lowerlimit)
         assert_almost_equal(res.binsize, e_binsize)
         assert_equal(res.extrapoints, e_extrapoints)
-
-    def test_weighting(self):
-        # Tests that weights give expected histograms
-
-        # basic tests, with expected results, given a set of weights
-        # weights used (first n are used for each test, where n is len of array) (14 values)
-        weights = np.array([1., 3., 4.5, 0.1, -1.0, 0.0, 0.3, 7.0, 103.2, 2, 40, 0, 0, 1])
-        # results taken from the numpy version of histogram
-        basic_tests = ((self.low_values, (np.array([4.0, 0.0, 4.5, -0.9, 0.0,
-                                                      0.3,110.2, 0.0, 0.0, 42.0]),
-                                          0.2, 0.1, 0)),
-                       (self.high_range, (np.array([9.6, 0., -1., 0., 0.,
-                                                      0.,145.2, 0., 0.3, 7.]),
-                                          2.0, 9.3, 0)),
-                       (self.low_range, (np.array([2.4, 0., 0., 0., 0.,
-                                                    2., 40., 0., 103.2, 13.5]),
-                                         2.0, 0.11, 0)),
-                       (self.few_values, (np.array([4.5, 0., 0.1, 0., 0., 0.,
-                                                     0., 1., 0., 3.]),
-                                          -1., 0.4, 0)),
-
-                       )
-        for inputs, expected_results in basic_tests:
-            # use the first lot of weights for test
-            # default limits given to reproduce output of numpy's test better
-            given_results = stats.histogram(inputs, defaultlimits=(inputs.min(),
-                                                                   inputs.max()),
-                                            weights=weights[:len(inputs)])
-            assert_array_almost_equal(expected_results[0], given_results[0],
-                                      decimal=2)
-            for i in range(1, 4):
-                assert_almost_equal(expected_results[i], given_results[i],
-                                    decimal=2)
 
     def test_reduced_bins(self):
         # Tests that reducing the number of bins produces expected results
@@ -981,7 +987,10 @@ class TestHistogram(TestCase):
                                           -1.5, 1.0, 0)),
                        )
         for inputs, expected_results in basic_tests:
-            given_results = stats.histogram(inputs, numbins=5)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                given_results = stats.histogram(inputs, numbins=5)
+
             assert_array_almost_equal(expected_results[0], given_results[0],
                                       decimal=2)
             for i in range(1, 4):
@@ -1016,7 +1025,10 @@ class TestHistogram(TestCase):
                                           -1.1052631578947367, 0.21052631578947367, 0)),
                        )
         for inputs, expected_results in basic_tests:
-            given_results = stats.histogram(inputs, numbins=20)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                given_results = stats.histogram(inputs, numbins=20)
+
             assert_array_almost_equal(expected_results[0], given_results[0],
                                       decimal=2)
             for i in range(1, 4):
@@ -1024,7 +1036,10 @@ class TestHistogram(TestCase):
                                     decimal=2)
 
     def test_histogram_result_attributes(self):
-        res = stats.histogram(self.low_range, numbins=20)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            res = stats.histogram(self.low_range, numbins=20)
+
         attributes = ('count', 'lowerlimit', 'binsize', 'extrapoints')
         check_named_results(res, attributes)
 
@@ -1358,9 +1373,8 @@ class TestMode(TestCase):
         assert_equal(vals[1][0], 2)
 
     def test_objects(self):
-        """Python objects must be sortable (le + eq) and have ne defined
-        for np.unique to work. hash is for set.
-        """
+        # Python objects must be sortable (le + eq) and have ne defined
+        # for np.unique to work. hash is for set.
         class Point(object):
             def __init__(self, x):
                 self.x = x
@@ -1380,9 +1394,12 @@ class TestMode(TestCase):
         points = [Point(x) for x in [1, 2, 3, 4, 3, 2, 2, 2]]
         arr = np.empty((8,), dtype=object)
         arr[:] = points
-        assert len(set(points)) == 4
+        assert_(len(set(points)) == 4)
         assert_equal(np.unique(arr).shape, (4,))
-        vals = stats.mode(arr)
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=RuntimeWarning)
+            vals = stats.mode(arr)
+
         assert_equal(vals[0][0], Point(2))
         assert_equal(vals[1][0], 4)
 
@@ -2082,7 +2099,8 @@ def test_chisquare_masked_arrays():
     # Empty arrays:
     # A data set with length 0 returns a masked scalar.
     with np.errstate(invalid='ignore'):
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore')
             chisq, p = stats.chisquare(np.ma.array([]))
     assert_(isinstance(chisq, np.ma.MaskedArray))
     assert_equal(chisq.shape, ())
@@ -2099,8 +2117,10 @@ def test_chisquare_masked_arrays():
     # empty3.T is an array containing 3 data sets, each with length 0,
     # so an array of size (3,) is returned, with all values masked.
     with np.errstate(invalid='ignore'):
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore')
             chisq, p = stats.chisquare(empty3.T)
+
     assert_(isinstance(chisq, np.ma.MaskedArray))
     assert_equal(chisq.shape, (3,))
     assert_(np.all(chisq.mask))

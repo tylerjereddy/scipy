@@ -2984,7 +2984,9 @@ loglaplace = loglaplace_gen(a=0.0, name='loglaplace')
 
 
 def _lognorm_logpdf(x, s):
-    return -log(x)**2 / (2*s**2) + np.where(x == 0, 0, -log(s*x*sqrt(2*pi)))
+    return _lazywhere(x != 0, (x, s),
+                      lambda x, s: -log(x)**2 / (2*s**2) - log(s*x*sqrt(2*pi)),
+                      -np.inf)
 
 
 class lognorm_gen(rv_continuous):
@@ -3361,9 +3363,13 @@ class t_gen(rv_continuous):
         return -special.stdtrit(df, q)
 
     def _stats(self, df):
-        mu2 = where(df > 2, df / (df-2.0), inf)
-        g1 = where(df > 3, 0.0, nan)
-        g2 = where(df > 4, 6.0/(df-4.0), nan)
+        mu2 = _lazywhere(df > 2, (df,),
+                         lambda df: df / (df-2.0),
+                         np.inf)
+        g1 = where(df > 3, 0.0, np.nan)
+        g2 = _lazywhere(df > 4, (df,),
+                        lambda df: 6.0 / (df-4.0),
+                        np.nan)
         return 0, mu2, g1, g2
 t = t_gen(name='t')
 
@@ -4420,7 +4426,7 @@ class wrapcauchy_gen(rv_continuous):
         return (1.0-c*c)/(2*pi*(1+c*c-2*c*cos(x)))
 
     def _cdf(self, x, c):
-        output = 0.0*x
+        output = np.zeros(x.shape, dtype=x.dtype)
         val = (1.0+c)/(1.0-c)
         c1 = x < pi
         c2 = 1-c1

@@ -9,10 +9,7 @@ import threading
 from . import sigtools
 from scipy._lib.six import callable
 from scipy._lib._version import NumpyVersion
-from scipy import linalg
-from scipy.fftpack import (fft, ifft, ifftshift, fft2, ifft2, fftn,
-                           ifftn, fftfreq)
-from numpy.fft import rfftn, irfftn
+from scipy import fftpack, linalg
 from numpy import (allclose, angle, arange, argsort, array, asarray,
                    atleast_1d, atleast_2d, cast, dot, exp, expand_dims,
                    iscomplexobj, mean, ndarray, newaxis, ones, pi,
@@ -161,11 +158,19 @@ def correlate(in1, in2, mode='full'):
 
     if mode == 'valid':
         _check_valid_mode_shapes(in1.shape, in2.shape)
+        # numpy is significantly faster for 1d
+        if in1.ndim == 1 and in2.ndim == 1:
+            return np.correlate(in1, in2, mode)
+
         ps = [i - j + 1 for i, j in zip(in1.shape, in2.shape)]
         out = np.empty(ps, in1.dtype)
 
         z = sigtools._correlateND(in1, in2, out, val)
     else:
+        # numpy is significantly faster for 1d
+        if in1.ndim == 1 and in2.ndim == 1 and (in1.size >= in2.size):
+            return np.correlate(in1, in2, mode)
+
         # _correlateND is far slower when in2.size > in1.size, so swap them
         # and then undo the effect afterward
         swapped_inputs = (mode == 'full') and (in2.size > in1.size)
@@ -357,8 +362,9 @@ def fftconvolve(in1, in2, mode="full"):
     # sure we only call rfftn/irfftn from one thread at a time.
     if not complex_result and (_rfft_mt_safe or _rfft_lock.acquire(False)):
         try:
-            ret = irfftn(rfftn(in1, fshape) *
-                         rfftn(in2, fshape), fshape)[fslice].copy()
+            ret = (np.fft.irfftn(np.fft.rfftn(in1, fshape) *
+                                 np.fft.rfftn(in2, fshape), fshape)[fslice].
+                   copy())
         finally:
             if not _rfft_mt_safe:
                 _rfft_lock.release()
@@ -367,7 +373,8 @@ def fftconvolve(in1, in2, mode="full"):
         # failed to acquire _rfft_lock (meaning rfftn isn't threadsafe and
         # is already in use by another thread).  In either case, use the
         # (threadsafe but slower) SciPy complex-FFT routines instead.
-        ret = ifftn(fftn(in1, fshape) * fftn(in2, fshape))[fslice].copy()
+        ret = fftpack.ifftn(fftpack.fftn(in1, fshape) *
+                            fftpack.fftn(in2, fshape))[fslice].copy()
         if not complex_result:
             ret = ret.real
 
@@ -450,6 +457,10 @@ def convolve(in1, in2, mode='full'):
 
     if volume.ndim == kernel.ndim == 0:
         return volume * kernel
+
+    # fastpath to faster numpy 1d convolve
+    if volume.ndim == 1 and kernel.ndim == 1 and volume.size >= kernel.size:
+        return np.convolve(volume, kernel, mode)
 
     slice_obj = [slice(None, None, -1)] * len(kernel.shape)
 
@@ -573,7 +584,7 @@ def wiener(im, mysize=None, noise=None):
     ----------
     im : ndarray
         An N-dimensional array.
-    mysize : int or arraylike, optional
+    mysize : int or array_like, optional
         A scalar or an N-length list giving the size of the Wiener filter
         window in each dimension.  Elements of mysize should be odd.
         If mysize is a scalar, then this scalar is used as the size
@@ -1181,7 +1192,7 @@ def hilbert(x, N=None, axis=-1):
     if N <= 0:
         raise ValueError("N must be positive.")
 
-    Xf = fft(x, N, axis=axis)
+    Xf = fftpack.fft(x, N, axis=axis)
     h = zeros(N)
     if N % 2 == 0:
         h[0] = h[N // 2] = 1
@@ -1194,7 +1205,7 @@ def hilbert(x, N=None, axis=-1):
         ind = [newaxis] * x.ndim
         ind[axis] = slice(None)
         h = h[ind]
-    x = ifft(Xf * h, axis=axis)
+    x = fftpack.ifft(Xf * h, axis=axis)
     return x
 
 
@@ -1235,7 +1246,7 @@ def hilbert2(x, N=None):
         raise ValueError("When given as a tuple, N must hold exactly "
                          "two positive integers")
 
-    Xf = fft2(x, N, axes=(0, 1))
+    Xf = fftpack.fft2(x, N, axes=(0, 1))
     h1 = zeros(N[0], 'd')
     h2 = zeros(N[1], 'd')
     for p in range(2):
@@ -1254,7 +1265,7 @@ def hilbert2(x, N=None):
     while k > 2:
         h = h[:, newaxis]
         k -= 1
-    x = ifft2(Xf * h, axes=(0, 1))
+    x = fftpack.ifft2(Xf * h, axes=(0, 1))
     return x
 
 
@@ -1708,17 +1719,17 @@ def resample(x, num, t=None, axis=0, window=None):
     >>> plt.show()
     """
     x = asarray(x)
-    X = fft(x, axis=axis)
+    X = fftpack.fft(x, axis=axis)
     Nx = x.shape[axis]
     if window is not None:
         if callable(window):
-            W = window(fftfreq(Nx))
+            W = window(fftpack.fftfreq(Nx))
         elif isinstance(window, ndarray):
             if window.shape != (Nx,):
                 raise ValueError('window must have the same length as data')
             W = window
         else:
-            W = ifftshift(get_window(window, Nx))
+            W = fftpack.ifftshift(get_window(window, Nx))
         newshape = [1] * x.ndim
         newshape[axis] = len(W)
         W.shape = newshape
@@ -1732,7 +1743,7 @@ def resample(x, num, t=None, axis=0, window=None):
     Y[sl] = X[sl]
     sl[axis] = slice(-(N - 1) // 2, None)
     Y[sl] = X[sl]
-    y = ifft(Y, axis=axis) * (float(num) / float(Nx))
+    y = fftpack.ifft(Y, axis=axis) * (float(num) / float(Nx))
 
     if x.dtype.char not in ['F', 'D']:
         y = y.real

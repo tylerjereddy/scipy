@@ -91,19 +91,23 @@ try:
     # This is duplicated from setup.py
     if os.path.exists('.git'):
         GIT_REVISION = setup_py.git_version()
-    elif os.path.exists('scipy/version.py'):
-        # must be a source distribution, use existing version file
-        from numpy.version import git_revision as GIT_REVISION
     else:
         GIT_REVISION = "Unknown"
 
     if not setup_py.ISRELEASED:
         if GIT_REVISION == "Unknown":
-            FULLVERSION += '.dev0'
+            FULLVERSION += '.dev0+Unknown'
         else:
             FULLVERSION += '.dev0+' + GIT_REVISION[:7]
 finally:
     sys.path.pop(0)
+
+try:
+    # Ensure sensible file permissions
+    os.umask(0o022)
+except AttributeError:
+    # No umask on non-posix
+    pass
 
 
 #-----------------------------------
@@ -310,8 +314,19 @@ def tarball_name(type='gztar'):
 
 @task
 def sdist():
+    # First clean the repo and update submodules (for up-to-date doc html theme
+    # and Sphinx extensions)
+    sh('git clean -xdf')
+    sh('git submodule init')
+    sh('git submodule update')
+
+    # Fix file permissions
+    sh('chmod a+rX -R *')
+
     # To be sure to bypass paver when building sdist... paver + scipy.distutils
     # do not play well together.
+    # Cython is run over all Cython files in setup.py, so generated C files
+    # will be included.
     sh('python setup.py sdist --formats=gztar,zip')
     sh('python setup.py sdist --formats=tar')
     if os.path.exists(os.path.join('dist', tarball_name("xztar"))):
@@ -334,6 +349,23 @@ def sdist():
         source = os.path.join('dist', tarball_name(t))
         target = os.path.join(options.installers.installersdir, tarball_name(t))
         shutil.copy(source, target)
+
+@task
+def release(options):
+    """Automate everything to be done for a release with numpy-vendor"""
+    # Source tarballs
+    sdist()
+
+    # Windows .exe installers
+    options.python_version = '2.7'
+    bdist_superpack(options)
+    options.python_version = '3.4'
+    bdist_superpack(options)
+    options.python_version = '3.3'
+    bdist_superpack(options)
+
+    # README (gpg signed) and Changelog
+    write_release_and_log()
 
 
 #---------------------------------------

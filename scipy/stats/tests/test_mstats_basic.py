@@ -411,7 +411,8 @@ class TestMoments(TestCase):
 
         # Check consistency between stats and mstats implementations
         assert_array_almost_equal_nulp(mstats.kurtosis(self.testcase_2d[2, :]),
-                                       stats.kurtosis(self.testcase_2d[2, :]))
+                                       stats.kurtosis(self.testcase_2d[2, :]),
+                                       nulp=4)
 
     def test_mode(self):
         a1 = [0,0,0,1,1,1,2,3,3,3,3,4,5,6,7]
@@ -1077,6 +1078,11 @@ class TestCompareWithStats(TestCase):
             assert_almost_equal(stats.tmax(y,2.),
                                 stats.mstats.tmax(ym,2.), 10)
 
+            assert_almost_equal(stats.tmax(x, upperlimit=3.),
+                                stats.mstats.tmax(xm, upperlimit=3.), 10)
+            assert_almost_equal(stats.tmax(y, upperlimit=3.),
+                                stats.mstats.tmax(ym, upperlimit=3.), 10)
+
     def test_tmin(self):
         for n in self.get_n():
             x, y, xm, ym = self.generate_xy_sample(n)
@@ -1180,11 +1186,19 @@ class TestCompareWithStats(TestCase):
         tmp = np.asarray([1,1,2,2,3,3,3,4,4,4,4,5,5,5,5]).astype('float')
         mask = (tmp == 5.)
         xm = np.ma.array(tmp, mask=mask)
+        x_orig, xm_orig = x.copy(), xm.copy()
 
         r = stats.find_repeats(x)
         rm = stats.mstats.find_repeats(xm)
 
-        assert_equal(r,rm)
+        assert_equal(r, rm)
+        assert_equal(x, x_orig)
+        assert_equal(xm, xm_orig)
+
+        # This crazy behavior is expected by count_tied_groups, but is not
+        # in the docstring...
+        _, counts = stats.mstats.find_repeats([])
+        assert_equal(counts, np.array(0, dtype=np.intp))
 
     def test_kendalltau(self):
         for n in self.get_n():

@@ -684,6 +684,23 @@ class TestPearson3(TestCase):
 
 
 class TestPoisson(TestCase):
+
+    def test_pmf_basic(self):
+        # Basic case
+        ln2 = np.log(2)
+        vals = stats.poisson.pmf([0, 1, 2], ln2)
+        expected = [0.5, ln2/2, ln2**2/4]
+        assert_allclose(vals, expected)
+
+    def test_mu0(self):
+        # Edge case: mu=0
+        vals = stats.poisson.pmf([0, 1, 2], 0)
+        expected = [1, 0, 0]
+        assert_array_equal(vals, expected)
+
+        interval = stats.poisson.interval(0.95, 0)
+        assert_equal(interval, (0, 0))
+
     def test_rvs(self):
         vals = stats.poisson.rvs(0.5, size=(2, 50))
         assert_(numpy.all(vals >= 0))
@@ -699,6 +716,11 @@ class TestPoisson(TestCase):
         mu = 16.0
         result = stats.poisson.stats(mu, moments='mvsk')
         assert_allclose(result, [mu, mu, np.sqrt(1.0/mu), 1.0/mu])
+
+        mu = np.array([0.0, 1.0, 2.0])
+        result = stats.poisson.stats(mu, moments='mvsk')
+        expected = (mu, mu, [np.inf, 1, 1/np.sqrt(2)], [np.inf, 1, 0.5])
+        assert_allclose(result, expected)
 
 
 class TestZipf(TestCase):
@@ -943,7 +965,9 @@ class TestSkellam(TestCase):
 class TestLognorm(TestCase):
     def test_pdf(self):
         # Regression test for Ticket #1471: avoid nan with 0/0 situation
-        with np.errstate(divide='ignore'):
+        # Also make sure there are no warnings at x=0, cf gh-5202
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', RuntimeWarning)
             pdf = stats.lognorm.pdf([0, 0.5, 1], 1)
             assert_array_almost_equal(pdf, [0.0, 0.62749608, 0.39894228])
 
@@ -2086,6 +2110,16 @@ def test_ncx2_tails_ticket_955():
     a = stats.ncx2.cdf(np.arange(20, 25, 0.2), 2, 1.07458615e+02)
     b = stats.ncx2._cdfvec(np.arange(20, 25, 0.2), 2, 1.07458615e+02)
     assert_allclose(a, b, rtol=1e-3, atol=0)
+
+
+def test_ncx2_tails_pdf():
+    # ncx2.pdf does not return nans in extreme tails(example from gh-1577)
+    # NB: this is to check that nan_to_num is not needed in ncx2.pdf
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        assert_equal(stats.ncx2.pdf(1, np.arange(340, 350), 2), 0)
+        logval = stats.ncx2.logpdf(1, np.arange(340, 350), 2)
+        assert_(np.isneginf(logval).all())
 
 
 def test_foldnorm_zero():

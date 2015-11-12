@@ -167,8 +167,7 @@ def cascade(hk, J=7):
     if sm < 0:  # need scaling function to integrate to 1
         v = -v
         sm = -sm
-    bitdic = {}
-    bitdic['0'] = v / sm
+    bitdic = {'0': v / sm}
     bitdic['1'] = np.dot(m[0, 1], bitdic['0'])
     step = 1 << J
     phi[::step] = bitdic['0']
@@ -322,7 +321,7 @@ def cwt(data, wavelet, widths):
     wavelet : function
         Wavelet function, which should take 2 arguments.
         The first argument is the number of points that the returned vector
-        will have (len(wavelet(width,length)) == length).
+        will have (len(wavelet(length,width)) == length).
         The second is a width parameter, defining the size of the wavelet
         (e.g. standard deviation of a gaussian). See `ricker`, which
         satisfies these requirements.
