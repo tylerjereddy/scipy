@@ -134,3 +134,8 @@ class TestSphericalVoronoi(TestCase):
             closest = np.array(sorted(distances)[0:3])
             assert_almost_equal(closest[0], closest[1], 7, str(vertex))
             assert_almost_equal(closest[0], closest[2], 7, str(vertex))
+
+    def test_number_of_vertices(self):
+        sv = spherical_voronoi.SphericalVoronoi(self.points)
+        n = len(self.points)
+        self.assertEqual(len(sv.vertices), 2*n-4)
