@@ -22,6 +22,12 @@ This release requires Python 2.7 or 3.4-3.5 and NumPy 1.7.1 or greater.
 New features
 ============
 
+`scipy.spatial` improvements
+----------------------------
+
+The function `scipy.spatial.distance.directed_hausdorff` was
+added to calculate the directed Hausdorff distance.
+
 `scipy.ndimage` improvements
 ----------------------------
 
