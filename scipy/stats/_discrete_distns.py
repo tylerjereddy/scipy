@@ -360,6 +360,7 @@ class hypergeom_gen(rv_discrete):
     def _pmf(self, k, M, n, N):
         # same as the following but numerically more precise
         # return comb(good, k) * comb(bad, N-k) / comb(tot, N)
+        print("**inside _pmf")
         return exp(self._logpmf(k, M, n, N))
 
     def _stats(self, M, n, N):

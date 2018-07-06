@@ -888,7 +888,12 @@ class rv_generic(object):
         return Y
 
     def _logcdf(self, x, *args):
-        return log(self._cdf(x, *args))
+        print('** inside _logcdf')
+        retval = log(self._cdf(x, *args))
+        print("retval in _logcdf:", retval)
+        print("type(retval):", type(retval))
+        print("retval.dtype:", retval.dtype)
+        return retval
 
     def _sf(self, x, *args):
         return 1.0-self._cdf(x, *args)
@@ -2763,18 +2768,29 @@ class rv_discrete(rv_generic):
         return floor(k) == k
 
     def _pmf(self, k, *args):
-        return self._cdf(k, *args) - self._cdf(k-1, *args)
+        retval = self._cdf(k, *args) - self._cdf(k-1, *args)
+        return retval
 
     def _logpmf(self, k, *args):
         return log(self._pmf(k, *args))
 
     def _cdf_single(self, k, *args):
+        print("** inside _cdf_single")
         m = arange(int(self.a), k+1)
+        print("** m:", m)
         return np.sum(self._pmf(m, *args), axis=0)
 
     def _cdf(self, x, *args):
-        k = floor(x)
-        return self._cdfvec(k, *args)
+        print("** inside _cdf")
+        print("x inside _cdf:", x)
+        print("x.dtype:", x.dtype)
+        k = floor(x).astype(int)
+        print("** k inside _cdf:", k)
+        print("k.dtype:", k.dtype)
+        ret_val = self._cdfvec(k, *args)
+        print("** ret_val in _cdf:", ret_val)
+        print("** ret_val.dtype in _cdf:", ret_val.dtype)
+        return ret_val
 
     # generic _logcdf, _sf, _logsf, _ppf, _isf, _rvs defined in rv_generic
 
@@ -2938,23 +2954,33 @@ class rv_discrete(rv_generic):
             Log of the cumulative distribution function evaluated at k.
 
         """
+        print('** running logcdf')
         args, loc, _ = self._parse_args(*args, **kwds)
         k, loc = map(asarray, (k, loc))
         args = tuple(map(asarray, args))
         k = asarray((k-loc))
+        print('checkpoint A')
         cond0 = self._argcheck(*args)
         cond1 = (k >= self.a) & (k < self.b)
         cond2 = (k >= self.b)
         cond = cond0 & cond1
+        print('checkpoint B')
         output = empty(shape(cond), 'd')
         output.fill(NINF)
         place(output, (1-cond0) + np.isnan(k), self.badvalue)
         place(output, cond2*(cond0 == cond0), 0.0)
+        print('checkpoint C')
 
         if np.any(cond):
             goodargs = argsreduce(cond, *((k,)+args))
+            print('output before D:', output)
+            print('checkpoint D')
+            print('cond after D:', cond)
             place(output, cond, self._logcdf(*goodargs))
+            print('output before E:', output)
+            print('checkpoint E')
         if output.ndim == 0:
+            print('** output from logcdf:', output)
             return output[()]
         return output
 
