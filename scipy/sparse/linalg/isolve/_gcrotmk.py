@@ -126,7 +126,8 @@ def _fgmres(matvec, v0, m, atol, lpsolve=None, rpsolve=None, cs=(), outer_v=(),
             w = axpy(v, w, v.shape[0], -alpha)  # w -= alpha*v
         hcur[i+1] = nrm2(w)
 
-        with np.errstate(over='ignore', divide='ignore'):
+        with np.errstate(over='ignore', divide='ignore',
+                         invalid='ignore'):
             # Careful with denormals
             alpha = 1/hcur[-1]
 
