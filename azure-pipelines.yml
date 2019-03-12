@@ -102,7 +102,8 @@ jobs:
       $tmpdir = New-TemporaryFile | %{ rm $_; mkdir $_ }
       git clone -q --depth=1 -b master https://github.com/numpy/numpy.git $tmpdir
       mv $tmpdir\numpy\distutils $NumpyDir
-    displayName: 'Replace NumPy distutils'
+    displayName: 'Replace NumPy distutils for NumPy 1.13.3 build'
+    condition: eq(variables['PYTHON_VERSION'], 3.5)
   - powershell: |
       If ($(BITS) -eq 32) {
           # 32-bit build requires careful adjustments
@@ -116,7 +117,15 @@ jobs:
       }
 
       mkdir dist
+
+      If ($(PYTHON_VERSION) -eq 3.5) {
+         # use NumPy 1.13.3 for one matrix entry
+         pip wheel -v -v -v --wheel-dir=dist .
+      }
+      Else {
       pip wheel --no-build-isolation -v -v -v --wheel-dir=dist .
+      }
+
       ls dist -r | Foreach-Object {
           pip install $_.FullName
       }
