@@ -227,6 +227,7 @@ class QhullError(RuntimeError):
     pass
 
 
+@cython.boundscheck(False)
 @cython.final
 cdef class _Qhull:
     # Note that the qhT struct is allocated separately --- otherwise
@@ -255,18 +256,16 @@ cdef class _Qhull:
     @cython.final
     def __init__(self,
                  bytes mode_option,
-                 np.double_t [:, :] points,
+                 np.double_t [:, ::1] points,
                  bytes options=None,
                  bytes required_options=None,
-                 furthest_site=False,
-                 incremental=False,
-                 np.double_t [:] interior_point=None):
+                 bint furthest_site=False,
+                 bint incremental=False,
+                 np.double_t [::1] interior_point=None):
         cdef int exitcode
 
         self._qh = NULL
         self._messages = MessageStream()
-
-        points = np.ascontiguousarray(points, dtype=np.double)
 
         self.ndim = points.shape[1]
 
@@ -545,12 +544,12 @@ cdef class _Qhull:
         cdef pointT *point
         cdef int i, j, ipoint, ipoint2, ncoplanar
         cdef object tmp
-        cdef np.npy_int [:, :] facets
+        cdef np.npy_int [:, ::1] facets
         cdef bint [:] good
-        cdef np.npy_int [:, :] neighbors
-        cdef np.npy_int [:, :] coplanar
-        cdef np.double_t [:, :] equations
-        cdef np.npy_int [:] id_map
+        cdef np.npy_int [:, ::1] neighbors
+        cdef np.npy_int [:, ::1] coplanar = np.zeros((10, 3), dtype=np.intc)
+        cdef np.double_t [:, ::1] equations
+        cdef np.npy_int [::1] id_map
         cdef double dist
         cdef int facet_ndim
         cdef unsigned int lower_bound
@@ -593,11 +592,10 @@ cdef class _Qhull:
         # Allocate output
         facets = np.zeros((j, facet_ndim), dtype=np.intc)
         good = np.zeros(j, dtype=np.intc)
-        neighbors = np.zeros((j, facet_ndim), dtype=np.intc)
+        neighbors = facets.copy()
         equations = np.zeros((j, facet_ndim+1), dtype=np.double)
 
         ncoplanar = 0
-        coplanar = np.zeros((10, 3), dtype=np.intc)
 
         # Retrieve facet information
         with nogil:
@@ -689,7 +687,7 @@ cdef class _Qhull:
         """
         cdef vertexT *vertex
         cdef int i, j, numpoints, point_ndim
-        cdef np.npy_double [:, :] points
+        cdef np.npy_double [:, ::1] points
 
         self.check_active()
 
@@ -735,7 +733,7 @@ cdef class _Qhull:
         cdef facetT *facet
         cdef vertexT* vertex
         cdef int i, j, numfacets, facet_ndim
-        cdef np.double_t [:, :] equations
+        cdef np.double_t [:, ::1] equations
         cdef list facets, facetsi
 
         self.check_active()
@@ -811,8 +809,8 @@ cdef class _Qhull:
         cdef facetT *facet
 
         cdef object tmp
-        cdef np.double_t [:, :] voronoi_vertices
-        cdef np.intp_t [:] point_region
+        cdef np.double_t [:, ::1] voronoi_vertices
+        cdef np.intp_t [::1] point_region
         cdef int nvoronoi_vertices
         cdef pointT infty_point[NPY_MAXDIMS+1]
         cdef pointT *point
@@ -935,7 +933,7 @@ cdef class _Qhull:
         cdef facetT *nextfacet
         cdef vertexT *vertexA
         cdef vertexT *vertexB
-        cdef int[:] extremes
+        cdef int[::1] extremes
         cdef int nextremes
 
         self.check_active()
@@ -1044,8 +1042,8 @@ cdef void qh_order_vertexneighbors_nd(qhT *qh, int nd, vertexT *vertex):
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-def _get_barycentric_transforms(np.double_t [:, :] points,
-                                np.npy_int [:, :] simplices,
+def _get_barycentric_transforms(np.double_t [:, ::1] points,
+                                np.npy_int [:, ::1] simplices,
                                 double eps):
     """
     Compute barycentric affine coordinate transformations for given
@@ -1078,8 +1076,8 @@ def _get_barycentric_transforms(np.double_t [:, :] points,
     These are stacked into the `Tinvs` returned.
 
     """
-    cdef np.double_t [:, :] T
-    cdef np.double_t [:, :, :] Tinvs
+    cdef np.double_t [:, ::1] T
+    cdef np.double_t [:, :, ::1] Tinvs
     cdef int isimplex
     cdef int i, j, n, nrhs, lda, ldb
     cdef int info = 0
@@ -1900,8 +1898,8 @@ class Delaunay(_QhullUser):
         :type: *ndarray of int, shape (npoints,)*
         """
         cdef int isimplex, k, ivertex, nsimplex, ndim
-        cdef np.npy_int [:, :] simplices
-        cdef np.npy_int [:] arr
+        cdef np.npy_int [:, ::1] simplices
+        cdef np.npy_int [::1] arr
 
         if self._vertex_to_simplex is None:
             self._vertex_to_simplex = np.empty((self.npoints,), dtype=np.intc)
@@ -1942,7 +1940,7 @@ class Delaunay(_QhullUser):
         """
         cdef int i, j, k, m, is_neighbor, is_missing, ndata, idata
         cdef int nsimplex, npoints, ndim
-        cdef np.npy_int [:, :] simplices
+        cdef np.npy_int [:, ::1] simplices
         cdef setlist.setlist_t sets
 
         if self._vertex_neighbor_vertices is None:
@@ -1990,9 +1988,9 @@ class Delaunay(_QhullUser):
         """
         cdef int isimplex, k, j, ndim, nsimplex, m, msize
         cdef object out
-        cdef np.npy_int [:, :] arr
-        cdef np.npy_int [:, :] neighbors
-        cdef np.npy_int [:, :] simplices
+        cdef np.npy_int [:, ::1] arr
+        cdef np.npy_int [:, ::1] neighbors
+        cdef np.npy_int [:, ::1] simplices
 
         neighbors = self.neighbors
         simplices = self.simplices
@@ -2066,8 +2064,8 @@ class Delaunay(_QhullUser):
         cdef double eps, eps_broad
         cdef int start
         cdef int k
-        cdef double [:, :] x
-        cdef int [:] out_
+        cdef double [:, ::1] x
+        cdef int [::1] out_
 
         xi = np.asanyarray(xi)
 
@@ -2115,8 +2113,8 @@ class Delaunay(_QhullUser):
         Compute hyperplane distances to the point `xi` from all simplices.
 
         """
-        cdef double [:, :] x
-        cdef double [:, :] out_
+        cdef double [:, ::1] x
+        cdef double [:, ::1] out_
         cdef DelaunayInfo_t info
         cdef double z[NPY_MAXDIMS+1]
         cdef int i, j, k
@@ -2214,15 +2212,15 @@ cdef int _get_delaunay_info(DelaunayInfo_t *info,
                             int compute_transform,
                             int compute_vertex_to_simplex,
                             int compute_vertex_neighbor_vertices) except -1:
-    cdef double [:, :, :] transform
-    cdef int [:] vertex_to_simplex
-    cdef int [:] vn_indices, vn_indptr
-    cdef double [:, :] points = obj.points
-    cdef int [:, :] simplices = obj.simplices
-    cdef int [:, :] neighbors = obj.neighbors
-    cdef double [:, :] equations = obj.equations
-    cdef double [:] min_bound = obj.min_bound
-    cdef double [:] max_bound = obj.max_bound
+    cdef double [:, :, ::1] transform
+    cdef int [::1] vertex_to_simplex
+    cdef int [::1] vn_indices, vn_indptr
+    cdef double [:, ::1] points = obj.points
+    cdef int [:, ::1] simplices = obj.simplices
+    cdef int [:, ::1] neighbors = obj.neighbors
+    cdef double [:, ::1] equations = obj.equations
+    cdef double [::1] min_bound = obj.min_bound
+    cdef double [::1] max_bound = obj.max_bound
 
     info.ndim = points.shape[1]
     info.npoints = points.shape[0]
