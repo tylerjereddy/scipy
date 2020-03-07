@@ -19,6 +19,7 @@ env:
    - PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
    # Using a single thread can actually speed up some computations on Travis
    - OPENBLAS_NUM_THREADS=1
+   - openblas_version=0.3.8
 matrix:
   include:
     - python: 3.6
@@ -155,22 +156,12 @@ before_install:
       export CFLAGS="-arch x86_64"
       export CXXFLAGS="-arch x86_64"
       printenv
-      wget https://3f23b170c54c2533c070-1c8a9b3114517dc5fe17b7c3f8c63a43.ssl.cf2.rackcdn.com/openblas-v0.3.7-macosx_10_9_x86_64-gf_1becaaa.tar.gz -O openblas.tar.gz
-      mkdir openblas
-      tar -xzf openblas.tar.gz -C openblas
-      # Modify the openblas dylib so it can be used in its current location
-      # Also make it use the current install location for libgfortran, libquadmath, and libgcc_s.
-      pushd openblas/usr/local/lib
-      install_name_tool -id $TRAVIS_BUILD_DIR/openblas/usr/local/lib/libopenblasp-r0.3.7.dylib libopenblas.dylib
-      install_name_tool -change /usr/local/gfortran/lib/libgfortran.3.dylib `$FC -v 2>&1 | perl -nle 'print $1 if m{--libdir=([^\s]+)}'`/libgfortran.3.dylib libopenblas.dylib
-      install_name_tool -change /usr/local/gfortran/lib/libquadmath.0.dylib `$FC -v 2>&1 | perl -nle 'print $1 if m{--libdir=([^\s]+)}'`/libquadmath.0.dylib libopenblas.dylib
-      install_name_tool -change /usr/local/gfortran/lib/libgcc_s.1.dylib `$FC -v 2>&1 | perl -nle 'print $1 if m{--libdir=([^\s]+)}'`/libgcc_s.1.dylib libopenblas.dylib
-      popd
+      target=$(python ../scipy/tools/openblas_support.py)
       echo "[openblas]" > site.cfg
       echo "libraries = openblas" >> site.cfg
-      echo "library_dirs = $TRAVIS_BUILD_DIR/openblas/usr/local/lib" >> site.cfg
-      echo "include_dirs = $TRAVIS_BUILD_DIR/openblas/usr/local/include" >> site.cfg
-      echo "runtime_library_dirs = $TRAVIS_BUILD_DIR/openblas/usr/local/lib" >> site.cfg
+      echo "library_dirs = $target/lib" >> site.cfg
+      echo "include_dirs = $target/include" >> site.cfg
+      echo "runtime_library_dirs = $target/lib" >> site.cfg
       # remove a spurious gcc/gfortran toolchain install
       rm -rf /usr/local/Cellar/gcc/9.2.0_2
     fi
@@ -258,6 +249,8 @@ script:
         USE_WHEEL_BUILD="--no-build"
     fi
   - export SCIPY_AVAILABLE_MEM=3G
+  # check for the expected version of OpenBLAS
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then python tools/openblas_support.py --check_version $openblas_version; fi
   - python -u runtests.py -g -m $TESTMODE $COVERAGE $USE_WHEEL_BUILD -- -rfEX -n 3 2>&1 | tee runtests.log
   - tools/validate_runtests_log.py $TESTMODE < runtests.log
   - if [ "${REFGUIDE_CHECK}" == "1" ]; then python runtests.py -g --refguide-check; fi
