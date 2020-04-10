@@ -30,6 +30,7 @@ matrix:
         - COVERAGE=
         - NUMPYSPEC="--upgrade numpy"
         - MB_PYTHON_VERSION=3.7
+        - USE_WHEEL=1
 cache:
   directories:
     - $HOME/.ccache
@@ -70,11 +71,16 @@ before_install:
       export CXXFLAGS="-arch x86_64"
       printenv
       target=$(python ../scipy/tools/openblas_support.py)
+      export DYLD_LIBRARY_PATH=$target/lib:/usr/local/gfortran/lib/:$DYLD_LIBRARY_PATH
+      echo "libs at new DYLD_LIBRARY_PATH entry:"
+      ls -tlrh $target/lib
       echo "[openblas]" > site.cfg
       echo "libraries = openblas" >> site.cfg
       echo "library_dirs = $target/lib" >> site.cfg
       echo "include_dirs = $target/include" >> site.cfg
       echo "runtime_library_dirs = $target/lib" >> site.cfg
+      echo "contents of site.cfg:"
+      cat site.cfg
       # remove a spurious gcc/gfortran toolchain install
       rm -rf /usr/local/Cellar/gcc/9.2.0_2
     fi
@@ -143,6 +149,8 @@ script:
         python tools/suppress_output.py pip wheel --no-build-isolation .
         pip install --no-cache-dir scipy*.whl
         USE_WHEEL_BUILD="--no-build"
+        # check for the expected version of OpenBLAS
+        if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then python tools/openblas_support.py --check_version $openblas_version; fi
     elif [ "${USE_SDIST}" == "1" ]; then
         echo "setup.py sdist"
         python tools/suppress_output.py python setup.py sdist
@@ -158,8 +166,6 @@ script:
         USE_WHEEL_BUILD="--no-build"
     fi
   - export SCIPY_AVAILABLE_MEM=3G
-  # check for the expected version of OpenBLAS
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then python tools/openblas_support.py --check_version $openblas_version; fi
   - python -u runtests.py -g -m $TESTMODE $COVERAGE $USE_WHEEL_BUILD -- -rfEX -n 3 2>&1 | tee runtests.log
   - tools/validate_runtests_log.py $TESTMODE < runtests.log
   - if [ "${REFGUIDE_CHECK}" == "1" ]; then python runtests.py -g --refguide-check; fi
