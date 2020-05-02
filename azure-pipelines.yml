@@ -120,12 +120,6 @@ jobs:
           Download-OpenBLAS('1')
       }
     displayName: 'Download / Install OpenBLAS'
-  - powershell: |
-      # wheels appear to use mingw64 version 6.3.0, but 6.4.0
-      # is the closest match available from choco package manager
-      choco install -y mingw --forcex86 --force --version=6.4.0
-    displayName: 'Install 32-bit mingw for 32-bit builds'
-    condition: and(succeeded(), eq(variables['BITS'], 32))
   - script: python -m pip install numpy cython==0.29.14 pybind11 pytest pytest-timeout pytest-xdist pytest-env pytest-cov Pillow mpmath
     displayName: 'Install dependencies'
   - powershell: |
