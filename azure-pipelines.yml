@@ -120,12 +120,6 @@ jobs:
           Download-OpenBLAS('1')
       }
     displayName: 'Download / Install OpenBLAS'
-  - powershell: |
-      # wheels appear to use mingw64 version 6.3.0, but 6.4.0
-      # is the closest match available from choco package manager
-      choco install -y mingw --forcex86 --force --version=6.4.0
-    displayName: 'Install 32-bit mingw for 32-bit builds'
-    condition: and(succeeded(), eq(variables['BITS'], 32))
   - script: python -m pip install numpy cython==0.29.18 pybind11 pytest pytest-timeout pytest-xdist pytest-env pytest-cov Pillow mpmath
     displayName: 'Install dependencies'
   - powershell: |
@@ -158,7 +152,7 @@ jobs:
           $env:LDFLAGS = "-m32"
           refreshenv
       }
-      $env:PATH = "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw$(BITS)\\bin;" + $env:PATH
+      Write-Host "**PATH: $env:PATH"
 
       mkdir dist
       pip wheel --no-build-isolation -v -v -v --wheel-dir=dist .
@@ -167,7 +161,6 @@ jobs:
       }
     displayName: 'Build SciPy'
   - powershell: |
-      $env:PATH = "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw$(BITS)\\bin;" + $env:PATH
       python runtests.py -n --mode=$(TEST_MODE) -- -n 2 -rsx --junitxml=junit/test-results.xml --cov=scipy --cov-report=xml --cov-report=html --durations=10
     displayName: 'Run SciPy Test Suite'
   - task: PublishTestResults@2
