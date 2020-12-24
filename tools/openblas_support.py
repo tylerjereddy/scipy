@@ -12,8 +12,8 @@ from urllib.error import HTTPError
 import zipfile
 import tarfile
 
-OPENBLAS_V = 'v0.3.13'
-OPENBLAS_LONG = 'v0.3.13'
+OPENBLAS_V = 'v0.3.10'
+OPENBLAS_LONG = 'v0.3.10'
 BASE_LOC = ''
 ANACONDA = 'https://anaconda.org/multibuild-wheels-staging/openblas-libs'
 ARCHITECTURES = ['', 'windows', 'darwin', 'aarch64', 'x86', 'ppc64le', 's390x']
@@ -54,9 +54,9 @@ def download_openblas(target, arch, ilp64):
         typ = 'tar.gz'
     elif arch == 'windows':
         if IS_32BIT:
-            suffix = 'win32-gcc_8_1_0.zip'
+            suffix = 'win32-gcc_7_1_0.zip'
         else:
-            suffix = 'win_amd64-gcc_8_1_0.zip'
+            suffix = 'win_amd64-gcc_7_1_0.zip'
         filename = f'{ANACONDA}/{OPENBLAS_LONG}/download/openblas{fnsuffix}-{OPENBLAS_LONG}-{suffix}'
         typ = 'zip'
     elif 'x86' in arch:
