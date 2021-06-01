@@ -316,6 +316,7 @@ stages:
         pytest==5.4.3
         pytest-cov
         pytest-env
+        pytest-repeat
         pytest-timeout
         pytest-xdist==1.34.0
       displayName: 'Install dependencies'
@@ -354,12 +355,9 @@ stages:
         ls dist -r | Foreach-Object {
             pip install $_.FullName
         }
-      displayName: 'Build SciPy'
-    - powershell: |
-        $env:PATH = "C:\\ProgramData\\chocolatey\\lib\\mingw\\tools\\install\\mingw$(BITS)\\bin;" + $env:PATH
         $env:SCIPY_USE_PYTHRAN=$(SCIPY_USE_PYTHRAN)
-        python runtests.py -n --mode=$(TEST_MODE) -- -n 2 -rsx --junitxml=junit/test-results.xml --cov=scipy --cov-report=xml --cov-report=html --durations=10
-      displayName: 'Run SciPy Test Suite'
+        python runtests.py -v --mode=$(TEST_MODE) -t "scipy.interpolate.tests.test_rbfinterp.py::TestRBFInterpolatorNeighbors20::test_interpolation_misfit_1d"  -- --count=500
+      displayName: 'Build and Test SciPy'
     - task: PublishTestResults@2
       condition: succeededOrFailed()
       inputs:
