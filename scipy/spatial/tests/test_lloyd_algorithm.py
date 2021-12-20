@@ -2,8 +2,9 @@ import pytest
 import numpy as np
 from numpy.testing import assert_allclose
 
-from scipy.spatial.distance import cdist
+from scipy.spatial.distance import cdist, pdist
 from scipy.spatial import lloyd_centroidal_voronoi_tessellation
+from scipy.spatial import ConvexHull
 from scipy.spatial._lloyd_algorithm import _l1_norm
 
 
@@ -81,3 +82,28 @@ def test_lloyd_errors():
         lloyd_centroidal_voronoi_tessellation(
                 points, decay=decay, maxiter=maxiter
         )
+
+
+@pytest.mark.parametrize("ndims", [2, 3, 4, 5])
+@pytest.mark.parametrize("npts", [20, 40, 100, 500, 800, 1005])
+@pytest.mark.parametrize("seed", range(3000))
+def test_lloyd_hull_limits(ndims, npts, seed):
+    # until the algorithm is capable of handling
+    # edges to infinity, generators that are mostly
+    # on the convex hull can be problematic
+    rng = np.random.default_rng(seed=seed)
+    points = rng.random((npts, ndims))
+    hull = ConvexHull(points)
+    all_indices = np.arange(npts)
+    interior_indices = np.setdiff1d(all_indices,
+                                    hull.vertices)
+    points_on_hull = points[hull.vertices]
+    interior_points = points[interior_indices]
+    points = np.vstack((points_on_hull,
+                        interior_points))
+    initial_min_dist = pdist(points).min()
+    new_points = lloyd_centroidal_voronoi_tessellation(points)
+    final_min_dist = pdist(new_points).min()
+    interior_ratio = interior_points.shape[0] / points_on_hull.shape[0]
+    if interior_ratio > 82.75:
+        assert final_min_dist >= initial_min_dist
