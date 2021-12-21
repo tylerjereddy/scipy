@@ -19,6 +19,29 @@ from scipy.spatial import distance, Voronoi
 __all__ = ['lloyd_centroidal_voronoi_tessellation']
 
 
+def _1d_voronoi_avg(sorted_points, decay):
+    # the 1D Voronoi diagram of an array of sorted points
+    # provides a vertex for the average position
+    # between all adjacent points (and/or the system
+    # boundaries)
+    new_points = np.empty_like(sorted_points)
+    vor_verts = np.empty(shape=(sorted_points.shape[0] + 1, 1))
+    vor_verts[1:-1] = (sorted_points[1:] - sorted_points[:-1]) / 2
+    vor_verts[0] = 0
+    vor_verts[-1] = 1
+    # TODO: improve efficiency...
+    for index, point in enumerate(sorted_points):
+        centroid = (vor_verts[index] + vor_verts[index + 1]) / 2
+        new_points[index] = (sorted_points[index] +
+                            (centroid - sorted_points[index]) * decay)
+        if new_points[index] < 0:
+            new_points[index] = 0
+        if new_points[index] > 1:
+            new_points[index] = 1
+    return new_points
+
+
+
 def _l1_norm(points: np.ndarray) -> float:
     l1 = distance.cdist(points, points, 'cityblock')
     return np.min(l1[l1.nonzero()])
@@ -199,6 +222,18 @@ def lloyd_centroidal_voronoi_tessellation(
     if not ((points.max() <= 1.) and (points.min() >= 0.)):
         raise ValueError('Sample is out of bounds')
 
+    # Qhull does not support 1D input, but it is known
+    # that Lloyd iteration on 1D data converges nicely
+    # to the CVT--see: Du et al. (2006) Siam J. Numer. Anal.
+    # so, let's trick Qhull by using identical "y" values
+    # for 1D data, then stripping them out after
+    if points.shape[1] == 1:
+        scenario_1d = True
+        points.sort()
+        tmp_zeros = np.zeros_like(points)
+    else:
+        scenario_1d = False
+
     if qhull_options is None:
         qhull_options = 'Qbb Qc Qz QJ'
 
@@ -220,13 +255,26 @@ def lloyd_centroidal_voronoi_tessellation(
             raise ValueError(msg) from exc
 
     for i in range(maxiter):
-        l1_old = _l1_norm(points=points)
-        points = _lloyd_centroidal_voronoi_tessellation(
-                points=points, decay=decay[i],
-                qhull_options=qhull_options,
-        )
+        if scenario_1d:
+            tmp_pts = np.hstack((points, tmp_zeros))
+            l1_old = _l1_norm(points=tmp_pts)
+        else:
+            l1_old = _l1_norm(points=points)
 
-        l1_new = _l1_norm(points=points)
+        if scenario_1d:
+            points = _1d_voronoi_avg(sorted_points=points,
+                                     decay=decay[i])
+        else:
+            points = _lloyd_centroidal_voronoi_tessellation(
+                    points=points, decay=decay[i],
+                    qhull_options=qhull_options,
+            )
+
+        if scenario_1d:
+            tmp_pts = np.hstack((points, tmp_zeros))
+            l1_new = _l1_norm(points=tmp_pts)
+        else:
+            l1_new = _l1_norm(points=points)
 
         if abs(l1_new - l1_old) < tol:
             break

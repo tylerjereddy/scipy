@@ -81,3 +81,30 @@ def test_lloyd_errors():
         lloyd_centroidal_voronoi_tessellation(
                 points, decay=decay, maxiter=maxiter
         )
+
+
+@pytest.mark.parametrize("n_pts", [15, 50, 780])
+@pytest.mark.parametrize("seed", [0, 15, 90, 707870])
+def test_lloyd_1d_bounds(n_pts, seed):
+    # in 1D, the Lloyd iteration algorithm should
+    # always converge to a CVT based on:
+    # Du et al. (2006) SIAM J. Numer. Anal. 44: 102-119.
+    rng = np.random.default_rng(seed=seed)
+    points = rng.random((n_pts, 1))
+    orig_min = np.ediff1d(np.sort(points)).min()
+    new_points = lloyd_centroidal_voronoi_tessellation(points)
+    assert new_points.shape == points.shape
+    new_min = np.ediff1d(np.sort(new_points)).min()
+    assert new_min > orig_min
+
+def test_lloyd_1d_known():
+    # when initial points are at 0, 0.5, 1
+    # we actually expect the minimum distance
+    # to decrease to accommodate a CVT in the
+    # bounds
+    points = [[0], [0.5], [1]]
+    orig_min = np.ediff1d(np.sort(points)).min()
+    new_points = lloyd_centroidal_voronoi_tessellation(points,
+                                                       maxiter=200)
+    new_min = np.ediff1d(np.sort(new_points)).min()
+    assert new_min < orig_min
