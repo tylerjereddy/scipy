@@ -13,6 +13,7 @@ Spherical Voronoi Code
 
 import warnings
 import numpy as np
+import pykokkos as pk
 import scipy
 from . import _voronoi
 from scipy.spatial import cKDTree
@@ -312,7 +313,7 @@ class SphericalVoronoi:
         areas = self.radius * theta
 
         # Correct arcs which go the wrong way (single-hemisphere inputs)
-        signs = np.sign(np.einsum('ij,ij->i', arcs[:, 0],
+        signs = pk.sign(np.einsum('ij,ij->i', arcs[:, 0],
                                               self.vertices - self.center))
         indices = np.where(signs < 0)
         areas[indices] = 2 * np.pi * self.radius - areas[indices]
