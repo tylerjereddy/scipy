@@ -528,7 +528,7 @@ class interp1d(_Interpolator1D):
                 if _do_extrapolate(fill_value):
                     self._check_and_update_bounds_error_for_extrapolation()
                     # assume y is sorted by x ascending order here.
-                    fill_value = (np.nan, np.take(self.y, -1, axis))
+                    fill_value = (np.take(self.y, 0, axis), np.take(self.y, -1, axis))
             elif kind == 'next':
                 self._side = 'right'
                 self._ind = 1
@@ -538,7 +538,7 @@ class interp1d(_Interpolator1D):
                 if _do_extrapolate(fill_value):
                     self._check_and_update_bounds_error_for_extrapolation()
                     # assume y is sorted by x ascending order here.
-                    fill_value = (np.take(self.y, 0, axis), np.nan)
+                    fill_value = (np.take(self.y, 0, axis), np.take(self.y, -1, axis))
             else:
                 # Check if we can delegate to numpy.interp (2x-10x faster).
                 np_types = (np.float_, np.int_)

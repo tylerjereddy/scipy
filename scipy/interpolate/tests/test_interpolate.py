@@ -437,6 +437,12 @@ class TestInterp1D:
                          [10, 11],
                          [-30, -30]])
 
+
+    def test_previous_gh_16997(self):
+        actual = interp1d([0, 1, 2, 3], [1, 2, 3, 4], "previous", fill_value="extrapolate")([-1, 1.5, 5])
+        assert_allclose(actual, [1., 2., 4.])
+
+
     def test_next(self):
         # Check the actual implementation of next interpolation.
         interp10 = interp1d(self.x10, self.y10, kind='next')
@@ -505,6 +511,13 @@ class TestInterp1D:
                         [[30, 30],
                          [10, 11],
                          [np.nan, np.nan]])
+
+
+    def test_next_gh_16997(self):
+        actual = interp1d([0, 1, 2, 3], [1, 2, 3, 4],
+                          "next", fill_value="extrapolate")([-1, 1.5, 5])
+        assert_allclose(actual, [1., 3., 4.])
+
 
     def test_zero(self):
         # Check the actual implementation of zero-order spline interpolation.
