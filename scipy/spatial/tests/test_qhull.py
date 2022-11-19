@@ -607,6 +607,25 @@ def assert_hulls_equal(points, facets_1, facets_2):
 
 
 class TestConvexHull:
+
+
+    @pytest.mark.parametrize("qhull_options", [
+                             "QbB",
+                             "QbB Pp Qt",
+                             ])
+    def test_gh_17442(self, qhull_options):
+        # NOTE: probably shouldn't load data this
+        # way anymore, but matching rest of
+        # this module for now...
+        points = np.loadtxt(os.path.join(os.path.dirname(__file__), 'data',
+                                        'gh_17442.csv'),
+                                        delimiter=",")
+        hull = qhull.ConvexHull(points, qhull_options=qhull_options)
+        # we're really just checking that we don't
+        # get a "hang" here
+        assert hull.points.shape == points.shape
+
+
     def test_masked_array_fails(self):
         masked_array = np.ma.masked_all(1)
         assert_raises(ValueError, qhull.ConvexHull, masked_array)

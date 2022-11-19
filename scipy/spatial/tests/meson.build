@@ -17,6 +17,7 @@ py3.install_sources([
     'data/cdist-X2.txt',
     'data/degenerate_pointset.npz',
     'data/iris.txt',
+    'data/gh_17442.csv',
     'data/pdist-boolean-inp.txt',
     'data/pdist-chebyshev-ml-iris.txt',
     'data/pdist-chebyshev-ml.txt',
