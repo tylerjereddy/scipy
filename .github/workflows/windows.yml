@@ -20,9 +20,6 @@ concurrency:
 jobs:
   test:
     name: Meson Windows tests
-    # Ensure (a) this doesn't run on forks by default, and
-    #        (b) it does run with Act locally (`github` doesn't exist there)
-    if: "github.repository == 'scipy/scipy' || github.repository == ''"
     runs-on: windows-2019
     steps:
       - name: Checkout
@@ -87,4 +84,4 @@ jobs:
         run: |
           mkdir tmp
           cd tmp
-          python -c 'import scipy; scipy.test()'
+          python -c 'import scipy; scipy.test(verbose=2)'
