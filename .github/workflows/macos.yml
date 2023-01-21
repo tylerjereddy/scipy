@@ -92,4 +92,4 @@ jobs:
         export SCIPY_USE_PYTHRAN=1
         python setup.py install
         cd /tmp
-        python -m pytest --pyargs scipy --durations=10 --timeout=60 -n 3
+        python -m pytest --pyargs scipy --durations=10 --timeout=80 -n 3
