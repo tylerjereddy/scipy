@@ -588,6 +588,12 @@ class TestCdist:
             assert_(Y2 is out1)
             # test for incorrect shape
             out2 = np.empty((out_r-1, out_c+1), dtype=np.double)
+            print("X1", X1, flush=True)
+            print("X2", X2, flush=True)
+            print("X1.shape", X1.shape, flush=True)
+            print("X2.shape", X2.shape, flush=True)
+            print("out2.shape", out2.shape, flush=True)
+            print("metric:", metric, flush=True)
             assert_raises(ValueError,
                           cdist, X1, X2, metric, out=out2, **kwargs)
             # test for C-contiguous order

@@ -200,7 +200,7 @@ stages:
         {
             $env:PATH = "C:\\rtools40\\ucrt64\\bin;" + $env:PATH
         }
-        python runtests.py -n --mode=$(TEST_MODE) -- -n 2 --junitxml=junit/test-results.xml --durations=10 --timeout=60
+        python runtests.py -n --mode=$(TEST_MODE) -- -k "test_cdist_out" -n 2 --junitxml=junit/test-results.xml --durations=10 --timeout=60
       displayName: 'Run SciPy Test Suite'
     - task: PublishTestResults@2
       condition: succeededOrFailed()
