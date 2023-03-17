@@ -2977,7 +2977,10 @@ def cdist(XA, XB, metric='euclidean', *, out=None, **kwargs):
             cdist_fn = metric_info.cdist_func
             print("metric_info inside cdist:", metric_info)
             print("cdist_fn inside cdist:", cdist_fn)
-            print("out.shape inside cdist:", out.shape)
+            if out is not None:
+                print("out.shape inside cdist:", out.shape)
+            else:
+                print("out is None inside cdist")
             print("XA.shape inside cdist:", XA.shape)
             print("XB.shape inside cdist:", XB.shape)
             return cdist_fn(XA, XB, out=out, **kwargs)
