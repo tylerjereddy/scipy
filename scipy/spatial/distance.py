@@ -2975,14 +2975,9 @@ def cdist(XA, XB, metric='euclidean', *, out=None, **kwargs):
         metric_info = _METRIC_ALIAS.get(mstr, None)
         if metric_info is not None:
             cdist_fn = metric_info.cdist_func
-            print("metric_info inside cdist:", metric_info)
-            print("cdist_fn inside cdist:", cdist_fn)
             if out is not None:
-                print("out.shape inside cdist:", out.shape)
-            else:
-                print("out is None inside cdist")
-            print("XA.shape inside cdist:", XA.shape)
-            print("XB.shape inside cdist:", XB.shape)
+                if np.broadcast_shapes(XA.shape, XB.shape) != out.shape:
+                    raise ValueError("Output array has incorrect shape.")
             return cdist_fn(XA, XB, out=out, **kwargs)
         elif mstr.startswith("test_"):
             metric_info = _TEST_METRICS.get(mstr, None)
