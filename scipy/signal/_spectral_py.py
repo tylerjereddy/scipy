@@ -3,6 +3,7 @@
 
 import numpy as np
 from scipy import fft as sp_fft
+from scipy._lib._util import _get_namespace
 from . import _signaltools
 from .windows import get_window
 from ._spectral import _lombscargle
@@ -1744,7 +1745,8 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
     axis = int(axis)
 
     # Ensure we have np.arrays, get outdtype
-    x = np.asarray(x)
+    xp = _get_namespace(x, y)
+    x = xp.asarray(x)
     if not same_data:
         y = np.asarray(y)
         outdtype = np.result_type(x, y, np.complex64)

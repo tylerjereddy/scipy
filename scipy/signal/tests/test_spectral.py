@@ -1,4 +1,14 @@
 import sys
+import os
+
+# NOTE: temporary hack to allow
+# swapping the tests between NumPy
+# and CuPy
+backend = os.environ["ARR_TST_BACKEND"]
+if backend == "numpy":
+    import numpy as xp
+else:
+    import cupy as xp
 
 import numpy as np
 from numpy.testing import (assert_, assert_approx_equal,
@@ -237,12 +247,12 @@ class TestPeriodogram:
 
 class TestWelch:
     def test_real_onesided_even(self):
-        x = np.zeros(16)
+        x = xp.zeros(16)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8)
-        assert_allclose(f, np.linspace(0, 0.5, 5))
-        q = np.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
+        assert_allclose(f, xp.linspace(0, 0.5, 5))
+        q = xp.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
                       0.11111111])
         assert_allclose(p, q, atol=1e-7, rtol=1e-7)
 
