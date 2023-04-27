@@ -22,6 +22,7 @@ from scipy.fft import fftfreq
 from scipy.signal import (periodogram, welch, lombscargle, csd, coherence,
                           spectrogram, stft, istft, check_COLA, check_NOLA)
 from scipy.signal._spectral_py import _spectral_helper
+import array_api_compat
 
 
 class TestPeriodogram:
@@ -251,6 +252,8 @@ class TestWelch:
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8)
+        print("f device:", array_api_compat.device(f))
+        print("expected device:", array_api_compat.device(xp.linspace(0, 0.5, 5)))
         assert_allclose(f, xp.linspace(0, 0.5, 5))
         q = xp.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
                       0.11111111])
