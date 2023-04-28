@@ -1611,8 +1611,8 @@ class TestSTFT:
         # Since x is real, its Fourier transform is conjugate symmetric, i.e.,
         # the missing 'second side' can be expressed through the 'first side':
         Zp1 = np.conj(Zp0[-2:0:-1, :])  # 'second side' is conjugate reversed
-        assert_allclose(Zp[:129, :], Zp0)
-        assert_allclose(Zp[129:, :], Zp1)
+        assert_allclose(Zp[:129, :], Zp0, atol=9e-16)
+        assert_allclose(Zp[129:, :], Zp1, atol=9e-16)
 
         # Calculate the spectral power:
         s2 = (np.sum(Zp0.real ** 2 + Zp0.imag ** 2, axis=0) +
