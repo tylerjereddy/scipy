@@ -7,7 +7,7 @@ import os
 import re
 import sys
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_almost_equal_nulp
 import inspect
 import array_api_compat
 
@@ -261,8 +261,10 @@ def _assert_allclose_host(a,
     """
     # see: https://github.com/data-apis/array-api-compat/pull/40
     # and: https://github.com/data-apis/array-api/issues/626
-    a = array_api_compat.to_device(a, "cpu")
-    b = array_api_compat.to_device(b, "cpu")
+    if not isinstance(a, float):
+        a = array_api_compat.to_device(a, "cpu")
+    if not isinstance(b, float):
+        b = array_api_compat.to_device(b, "cpu")
     assert_allclose(a,
                     b,
                     rtol=rtol,
@@ -298,3 +300,11 @@ def _assert_matching_namespace(a, b):
     a_space = array_api_compat.array_namespace(a)
     b_space = array_api_compat.array_namespace(b)
     assert a_space == b_space
+
+
+def _assert_array_almost_equal_nulp_host(x, y, nulp=1):
+    # see: https://github.com/data-apis/array-api-compat/pull/40
+    # and: https://github.com/data-apis/array-api/issues/626
+    x = array_api_compat.to_device(x, "cpu")
+    y = array_api_compat.to_device(y, "cpu")
+    assert_array_almost_equal_nulp(x=x, y=y, nulp=nulp)

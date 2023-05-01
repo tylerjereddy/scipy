@@ -2040,7 +2040,8 @@ def _triage_segments(window, nperseg, input_length):
             nperseg = input_length
         win = get_window(window, nperseg)
     else:
-        win = np.asarray(window)
+        xp = _get_namespace(window)
+        win = xp.asarray(window)
         if len(win.shape) != 1:
             raise ValueError('window must be 1-D')
         if input_length < win.shape[-1]:

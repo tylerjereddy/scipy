@@ -14,7 +14,8 @@ from scipy.signal import (periodogram, welch, lombscargle, csd, coherence,
                           spectrogram, stft, istft, check_COLA, check_NOLA)
 from scipy.signal._spectral_py import _spectral_helper
 from scipy._lib._testutils import (_assert_allclose_host, _import_xp,
-                                   _assert_matching_namespace)
+                                   _assert_matching_namespace,
+                                   _assert_array_almost_equal_nulp_host)
 xp = _import_xp()
 
 
@@ -253,139 +254,279 @@ class TestWelch:
         _assert_matching_namespace(p, x)
 
     def test_real_onesided_odd(self):
-        x = np.zeros(16)
+        x = xp.zeros(16)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=9)
-        assert_allclose(f, np.arange(5.0)/9.0)
+        _assert_allclose_host(f, np.arange(5.0)/9.0)
         q = np.array([0.12477455, 0.23430933, 0.17072113, 0.17072113,
                       0.17072113])
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_real_twosided(self):
-        x = np.zeros(16)
+        x = xp.zeros(16)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8, return_onesided=False)
-        assert_allclose(f, fftfreq(8, 1.0))
+        _assert_allclose_host(f, fftfreq(8, 1.0))
         q = np.array([0.08333333, 0.07638889, 0.11111111, 0.11111111,
                       0.11111111, 0.11111111, 0.11111111, 0.07638889])
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_real_spectrum(self):
-        x = np.zeros(16)
+        x = xp.zeros(16)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8, scaling='spectrum')
-        assert_allclose(f, np.linspace(0, 0.5, 5))
+        _assert_allclose_host(f, np.linspace(0, 0.5, 5))
         q = np.array([0.015625, 0.02864583, 0.04166667, 0.04166667,
                       0.02083333])
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_integer_onesided_even(self):
-        x = np.zeros(16, dtype=int)
+        x = xp.zeros(16, dtype=int)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8)
-        assert_allclose(f, np.linspace(0, 0.5, 5))
+        _assert_allclose_host(f, np.linspace(0, 0.5, 5))
         q = np.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
                       0.11111111])
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_integer_onesided_odd(self):
-        x = np.zeros(16, dtype=int)
+        x = xp.zeros(16, dtype=int)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=9)
-        assert_allclose(f, np.arange(5.0)/9.0)
+        _assert_allclose_host(f, np.arange(5.0)/9.0)
         q = np.array([0.12477455, 0.23430933, 0.17072113, 0.17072113,
                       0.17072113])
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_integer_twosided(self):
-        x = np.zeros(16, dtype=int)
+        x = xp.zeros(16, dtype=int)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8, return_onesided=False)
-        assert_allclose(f, fftfreq(8, 1.0))
+        _assert_allclose_host(f, fftfreq(8, 1.0))
         q = np.array([0.08333333, 0.07638889, 0.11111111, 0.11111111,
                       0.11111111, 0.11111111, 0.11111111, 0.07638889])
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_complex(self):
-        x = np.zeros(16, np.complex128)
+        x = xp.zeros(16, np.complex128)
         x[0] = 1.0 + 2.0j
         x[8] = 1.0 + 2.0j
         f, p = welch(x, nperseg=8, return_onesided=False)
-        assert_allclose(f, fftfreq(8, 1.0))
+        _assert_allclose_host(f, fftfreq(8, 1.0))
         q = np.array([0.41666667, 0.38194444, 0.55555556, 0.55555556,
                       0.55555556, 0.55555556, 0.55555556, 0.38194444])
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_unk_scaling(self):
-        assert_raises(ValueError, welch, np.zeros(4, np.complex128),
+        assert_raises(ValueError, welch, xp.zeros(4, xp.complex128),
                       scaling='foo', nperseg=4)
 
     def test_detrend_linear(self):
-        x = np.arange(10, dtype=np.float64) + 0.04
+        x = xp.arange(10, dtype=xp.float64) + 0.04
         f, p = welch(x, nperseg=10, detrend='linear')
-        assert_allclose(p, np.zeros_like(p), atol=1e-15)
+        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_no_detrending(self):
-        x = np.arange(10, dtype=np.float64) + 0.04
+        x = xp.arange(10, dtype=xp.float64) + 0.04
         f1, p1 = welch(x, nperseg=10, detrend=False)
         f2, p2 = welch(x, nperseg=10, detrend=lambda x: x)
-        assert_allclose(f1, f2, atol=1e-15)
-        assert_allclose(p1, p2, atol=1e-15)
+        _assert_allclose_host(f1, f2, atol=1e-15)
+        _assert_allclose_host(p1, p2, atol=1e-15)
+        _assert_matching_namespace(f1, x)
+        _assert_matching_namespace(p1, x)
+        _assert_matching_namespace(f2, x)
+        _assert_matching_namespace(p2, x)
 
     def test_detrend_external(self):
-        x = np.arange(10, dtype=np.float64) + 0.04
+        x = xp.arange(10, dtype=xp.float64) + 0.04
         f, p = welch(x, nperseg=10,
                      detrend=lambda seg: signal.detrend(seg, type='l'))
-        assert_allclose(p, np.zeros_like(p), atol=1e-15)
+        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_detrend_external_nd_m1(self):
-        x = np.arange(40, dtype=np.float64) + 0.04
+        x = xp.arange(40, dtype=xp.float64) + 0.04
         x = x.reshape((2,2,10))
         f, p = welch(x, nperseg=10,
                      detrend=lambda seg: signal.detrend(seg, type='l'))
-        assert_allclose(p, np.zeros_like(p), atol=1e-15)
+        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
+
+    def test_real_twosided(self):
+        x = xp.zeros(16)
+        x[0] = 1
+        x[8] = 1
+        f, p = welch(x, nperseg=8, return_onesided=False)
+        _assert_allclose_host(f, fftfreq(8, 1.0))
+        q = np.array([0.08333333, 0.07638889, 0.11111111, 0.11111111,
+                      0.11111111, 0.11111111, 0.11111111, 0.07638889])
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
+
+    def test_real_spectrum(self):
+        x = xp.zeros(16)
+        x[0] = 1
+        x[8] = 1
+        f, p = welch(x, nperseg=8, scaling='spectrum')
+        _assert_allclose_host(f, np.linspace(0, 0.5, 5))
+        q = np.array([0.015625, 0.02864583, 0.04166667, 0.04166667,
+                      0.02083333])
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
+
+    def test_integer_onesided_even(self):
+        x = xp.zeros(16, dtype=int)
+        x[0] = 1
+        x[8] = 1
+        f, p = welch(x, nperseg=8)
+        _assert_allclose_host(f, np.linspace(0, 0.5, 5))
+        q = np.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
+                      0.11111111])
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
+
+    def test_integer_onesided_odd(self):
+        x = xp.zeros(16, dtype=int)
+        x[0] = 1
+        x[8] = 1
+        f, p = welch(x, nperseg=9)
+        _assert_allclose_host(f, np.arange(5.0)/9.0)
+        q = np.array([0.12477455, 0.23430933, 0.17072113, 0.17072113,
+                      0.17072113])
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
+
+    def test_integer_twosided(self):
+        x = xp.zeros(16, dtype=int)
+        x[0] = 1
+        x[8] = 1
+        f, p = welch(x, nperseg=8, return_onesided=False)
+        _assert_allclose_host(f, fftfreq(8, 1.0))
+        q = np.array([0.08333333, 0.07638889, 0.11111111, 0.11111111,
+                      0.11111111, 0.11111111, 0.11111111, 0.07638889])
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
+
+    def test_complex(self):
+        x = xp.zeros(16, np.complex128)
+        x[0] = 1.0 + 2.0j
+        x[8] = 1.0 + 2.0j
+        f, p = welch(x, nperseg=8, return_onesided=False)
+        _assert_allclose_host(f, fftfreq(8, 1.0))
+        q = np.array([0.41666667, 0.38194444, 0.55555556, 0.55555556,
+                      0.55555556, 0.55555556, 0.55555556, 0.38194444])
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
+
+    def test_unk_scaling(self):
+        assert_raises(ValueError, welch, xp.zeros(4, xp.complex128),
+                      scaling='foo', nperseg=4)
+
+    def test_detrend_linear(self):
+        x = xp.arange(10, dtype=xp.float64) + 0.04
+        f, p = welch(x, nperseg=10, detrend='linear')
+        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
+
+    def test_no_detrending(self):
+        x = xp.arange(10, dtype=xp.float64) + 0.04
+        f1, p1 = welch(x, nperseg=10, detrend=False)
+        f2, p2 = welch(x, nperseg=10, detrend=lambda x: x)
+        _assert_allclose_host(f1, f2, atol=1e-15)
+        _assert_allclose_host(p1, p2, atol=1e-15)
+        _assert_matching_namespace(f1, x)
+        _assert_matching_namespace(p1, x)
+        _assert_matching_namespace(f2, x)
+        _assert_matching_namespace(p2, x)
+
+    def test_detrend_external(self):
+        x = xp.arange(10, dtype=xp.float64) + 0.04
+        f, p = welch(x, nperseg=10,
+                     detrend=lambda seg: signal.detrend(seg, type='l'))
+        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_detrend_external_nd_0(self):
-        x = np.arange(20, dtype=np.float64) + 0.04
+        x = xp.arange(20, dtype=xp.float64) + 0.04
         x = x.reshape((2,1,10))
-        x = np.moveaxis(x, 2, 0)
+        x = xp.moveaxis(x, 2, 0)
         f, p = welch(x, nperseg=10, axis=0,
                      detrend=lambda seg: signal.detrend(seg, axis=0, type='l'))
-        assert_allclose(p, np.zeros_like(p), atol=1e-15)
+        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_nd_axis_m1(self):
-        x = np.arange(20, dtype=np.float64) + 0.04
+        x = xp.arange(20, dtype=xp.float64) + 0.04
         x = x.reshape((2,1,10))
         f, p = welch(x, nperseg=10)
         assert_array_equal(p.shape, (2, 1, 6))
-        assert_allclose(p[0,0,:], p[1,0,:], atol=1e-13, rtol=1e-13)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
+        _assert_allclose_host(p[0,0,:], p[1,0,:], atol=1e-13, rtol=1e-13)
         f0, p0 = welch(x[0,0,:], nperseg=10)
-        assert_allclose(p0[np.newaxis,:], p[1,:], atol=1e-13, rtol=1e-13)
+        _assert_matching_namespace(f0, x)
+        _assert_matching_namespace(p0, x)
+        _assert_allclose_host(p0[xp.newaxis,:], p[1,:], atol=1e-13, rtol=1e-13)
 
     def test_nd_axis_0(self):
-        x = np.arange(20, dtype=np.float64) + 0.04
+        x = xp.arange(20, dtype=xp.float64) + 0.04
         x = x.reshape((10,2,1))
         f, p = welch(x, nperseg=10, axis=0)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
         assert_array_equal(p.shape, (6,2,1))
-        assert_allclose(p[:,0,0], p[:,1,0], atol=1e-13, rtol=1e-13)
+        _assert_allclose_host(p[:,0,0], p[:,1,0], atol=1e-13, rtol=1e-13)
         f0, p0 = welch(x[:,0,0], nperseg=10)
-        assert_allclose(p0, p[:,1,0], atol=1e-13, rtol=1e-13)
+        _assert_matching_namespace(f0, x)
+        _assert_matching_namespace(p0, x)
+        _assert_allclose_host(p0, p[:,1,0], atol=1e-13, rtol=1e-13)
 
     def test_window_external(self):
-        x = np.zeros(16)
+        x = xp.zeros(16)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, 10, 'hann', nperseg=8)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
         win = signal.get_window('hann', 8)
         fe, pe = welch(x, 10, win, nperseg=None)
-        assert_array_almost_equal_nulp(p, pe)
-        assert_array_almost_equal_nulp(f, fe)
+        _assert_matching_namespace(fe, x)
+        _assert_matching_namespace(pe, x)
+        _assert_array_almost_equal_nulp_host(p, pe)
+        _assert_array_almost_equal_nulp_host(f, fe)
         assert_array_equal(fe.shape, (5,))  # because win length used as nperseg
         assert_array_equal(pe.shape, (5,))
         assert_raises(ValueError, welch, x,
@@ -399,18 +540,18 @@ class TestWelch:
         assert_array_equal(f.shape, (0,))
         assert_array_equal(p.shape, (0,))
         for shape in [(0,), (3,0), (0,5,2)]:
-            f, p = welch(np.empty(shape))
+            f, p = welch(xp.empty(shape))
             assert_array_equal(f.shape, shape)
             assert_array_equal(p.shape, shape)
 
     def test_empty_input_other_axis(self):
         for shape in [(3,0), (0,5,2)]:
-            f, p = welch(np.empty(shape), axis=1)
+            f, p = welch(xp.empty(shape), axis=1)
             assert_array_equal(f.shape, shape)
             assert_array_equal(p.shape, shape)
 
     def test_short_data(self):
-        x = np.zeros(8)
+        x = xp.zeros(8)
         x[0] = 1
         #for string-like window, input signal length < nperseg value gives
         #UserWarning, sets nperseg to x.shape[-1]
@@ -419,93 +560,110 @@ class TestWelch:
             f, p = welch(x,window='hann')  # default nperseg
             f1, p1 = welch(x,window='hann', nperseg=256)  # user-specified nperseg
         f2, p2 = welch(x, nperseg=8)  # valid nperseg, doesn't give warning
-        assert_allclose(f, f2)
-        assert_allclose(p, p2)
-        assert_allclose(f1, f2)
-        assert_allclose(p1, p2)
+        _assert_allclose_host(f, f2)
+        _assert_allclose_host(p, p2)
+        _assert_allclose_host(f1, f2)
+        _assert_allclose_host(p1, p2)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(f2, x)
+        _assert_matching_namespace(p2, x)
 
     def test_window_long_or_nd(self):
-        assert_raises(ValueError, welch, np.zeros(4), 1, np.array([1,1,1,1,1]))
-        assert_raises(ValueError, welch, np.zeros(4), 1,
-                      np.arange(6).reshape((2,3)))
+        assert_raises(ValueError, welch, xp.zeros(4), 1, xp.array([1,1,1,1,1]))
+        assert_raises(ValueError, welch, xp.zeros(4), 1,
+                      xp.arange(6).reshape((2,3)))
 
     def test_nondefault_noverlap(self):
-        x = np.zeros(64)
+        x = xp.zeros(64)
         x[::8] = 1
         f, p = welch(x, nperseg=16, noverlap=4)
         q = np.array([0, 1./12., 1./3., 1./5., 1./3., 1./5., 1./3., 1./5.,
                       1./6.])
-        assert_allclose(p, q, atol=1e-12)
+        _assert_allclose_host(p, q, atol=1e-12)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_bad_noverlap(self):
-        assert_raises(ValueError, welch, np.zeros(4), 1, 'hann', 2, 7)
+        assert_raises(ValueError, welch, xp.zeros(4), 1, 'hann', 2, 7)
 
     def test_nfft_too_short(self):
-        assert_raises(ValueError, welch, np.ones(12), nfft=3, nperseg=4)
+        assert_raises(ValueError, welch, xp.ones(12), nfft=3, nperseg=4)
 
     def test_real_onesided_even_32(self):
-        x = np.zeros(16, 'f')
+        x = xp.zeros(16, 'f')
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8)
-        assert_allclose(f, np.linspace(0, 0.5, 5))
+        _assert_allclose_host(f, np.linspace(0, 0.5, 5))
         q = np.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
                       0.11111111], 'f')
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
         assert_(p.dtype == q.dtype)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_real_onesided_odd_32(self):
-        x = np.zeros(16, 'f')
+        x = xp.zeros(16, 'f')
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=9)
-        assert_allclose(f, np.arange(5.0)/9.0)
+        _assert_allclose_host(f, np.arange(5.0)/9.0)
         q = np.array([0.12477458, 0.23430935, 0.17072113, 0.17072116,
                       0.17072113], 'f')
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
         assert_(p.dtype == q.dtype)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_real_twosided_32(self):
-        x = np.zeros(16, 'f')
+        x = xp.zeros(16, 'f')
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8, return_onesided=False)
-        assert_allclose(f, fftfreq(8, 1.0))
+        _assert_allclose_host(f, fftfreq(8, 1.0))
         q = np.array([0.08333333, 0.07638889, 0.11111111,
                       0.11111111, 0.11111111, 0.11111111, 0.11111111,
                       0.07638889], 'f')
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
         assert_(p.dtype == q.dtype)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_complex_32(self):
-        x = np.zeros(16, 'F')
+        x = xp.zeros(16, 'F')
         x[0] = 1.0 + 2.0j
         x[8] = 1.0 + 2.0j
         f, p = welch(x, nperseg=8, return_onesided=False)
-        assert_allclose(f, fftfreq(8, 1.0))
+        _assert_allclose_host(f, fftfreq(8, 1.0))
         q = np.array([0.41666666, 0.38194442, 0.55555552, 0.55555552,
                       0.55555558, 0.55555552, 0.55555552, 0.38194442], 'f')
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
         assert_(p.dtype == q.dtype,
                 f'dtype mismatch, {p.dtype}, {q.dtype}')
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_padded_freqs(self):
-        x = np.zeros(12)
+        x = xp.zeros(12)
 
         nfft = 24
         f = fftfreq(nfft, 1.0)[:nfft//2+1]
         f[-1] *= -1
         fodd, _ = welch(x, nperseg=5, nfft=nfft)
         feven, _ = welch(x, nperseg=6, nfft=nfft)
-        assert_allclose(f, fodd)
-        assert_allclose(f, feven)
+        _assert_allclose_host(f, fodd)
+        _assert_allclose_host(f, feven)
+        _assert_matching_namespace(fodd, x)
+        _assert_matching_namespace(feven, x)
 
         nfft = 25
         f = fftfreq(nfft, 1.0)[:(nfft + 1)//2]
         fodd, _ = welch(x, nperseg=5, nfft=nfft)
         feven, _ = welch(x, nperseg=6, nfft=nfft)
-        assert_allclose(f, fodd)
-        assert_allclose(f, feven)
+        _assert_allclose_host(f, fodd)
+        _assert_allclose_host(f, feven)
+        _assert_matching_namespace(fodd, x)
+        _assert_matching_namespace(feven, x)
 
     def test_window_correction(self):
         A = 20
@@ -514,7 +672,7 @@ class TestWelch:
         fsig = 300
         ii = int(fsig*nperseg//fs)  # Freq index of fsig
 
-        tt = np.arange(fs)/fs
+        tt = xp.arange(fs)/fs
         x = A*np.sin(2*np.pi*fsig*tt)
 
         for window in ['hann', 'bartlett', ('tukey', 0.1), 'flattop']:
@@ -524,12 +682,14 @@ class TestWelch:
                                  scaling='density')
 
             # Check peak height at signal frequency for 'spectrum'
-            assert_allclose(p_spec[ii], A**2/2.0)
+            _assert_allclose_host(p_spec[ii], A**2/2.0)
             # Check integrated spectrum RMS for 'density'
-            assert_allclose(np.sqrt(np.trapz(p_dens, freq)), A*np.sqrt(2)/2,
+            _assert_allclose_host(xp.sqrt(xp.trapz(p_dens, freq)), A*np.sqrt(2)/2,
                             rtol=1e-3)
 
     def test_axis_rolling(self):
+        # TODO: what to do about random seeds and alternative
+        # array libraries?
         np.random.seed(1234)
 
         x_flat = np.random.randn(1024)
@@ -547,13 +707,15 @@ class TestWelch:
             assert_equal(p_flat, p_minus.squeeze(), err_msg=a-x.ndim)
 
     def test_average(self):
-        x = np.zeros(16)
+        x = xp.zeros(16)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8, average='median')
-        assert_allclose(f, np.linspace(0, 0.5, 5))
+        _assert_allclose_host(f, np.linspace(0, 0.5, 5))
         q = np.array([.1, .05, 0., 1.54074396e-33, 0.])
-        assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
         assert_raises(ValueError, welch, x, nperseg=8,
                       average='unrecognised-average')

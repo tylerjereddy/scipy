@@ -3554,15 +3554,26 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
         # Find leastsq fit and remove it for each piece
         for m in range(Nreg):
             Npts = bp[m + 1] - bp[m]
-            A = xp.ones((Npts, 2), dtype=dtype)
+            A = xp.ones((int(Npts), 2), dtype=dtype)
             A[:, 0] = xp.arange(1, Npts + 1, dtype=dtype) / Npts
-            sl = slice(bp[m], bp[m + 1])
-            coef, resids, rank, s = linalg.lstsq(A, newdata[sl])
+            sl = slice(int(bp[m]), int(bp[m + 1]))
+            # TODO: lstsq isn't in the array API standard?
+            # for now, special casing with potential for unfortunate
+            # data movement/copies
+            if "cupy" in xp.__name__:
+                A = A.get()
+                newdata = newdata.get()
+                coef, resids, rank, s = linalg.lstsq(A, newdata[sl])
+                A = xp.asarray(A)
+                newdata = xp.asarray(newdata)
+                coef = xp.asarray(coef)
+            else:
+                coef, resids, rank, s = linalg.lstsq(A, newdata[sl])
             newdata[sl] = newdata[sl] - A @ coef
 
         # Put data back in original shape.
-        tdshape = xp.take(dshape, newdims, 0)
-        ret = xp.reshape(newdata, tuple(tdshape))
+        tdshape = xp.take(xp.asarray(dshape), newdims, axis=0)
+        ret = xp.reshape(newdata, shape=tuple([int(e) for e in tdshape]))
         vals = list(range(1, rnk))
         olddims = vals[:axis] + [0] + vals[axis:]
         ret = xp.transpose(ret, tuple(olddims))
