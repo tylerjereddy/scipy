@@ -1,15 +1,6 @@
 import sys
 import os
 
-# NOTE: temporary hack to allow
-# swapping the tests between NumPy
-# and CuPy
-backend = os.environ["ARR_TST_BACKEND"]
-if backend == "numpy":
-    import numpy as xp
-else:
-    import cupy as xp
-
 import numpy as np
 from numpy.testing import (assert_, assert_approx_equal,
                            assert_allclose, assert_array_equal, assert_equal,
@@ -22,7 +13,8 @@ from scipy.fft import fftfreq
 from scipy.signal import (periodogram, welch, lombscargle, csd, coherence,
                           spectrogram, stft, istft, check_COLA, check_NOLA)
 from scipy.signal._spectral_py import _spectral_helper
-from scipy._lib._testutils import _assert_allclose_host
+from scipy._lib._testutils import _assert_allclose_host, _import_xp
+xp = _import_xp()
 
 
 class TestPeriodogram:

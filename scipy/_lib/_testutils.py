@@ -270,3 +270,21 @@ def _assert_allclose_host(a,
                     equal_nan=equal_nan,
                     err_msg=err_msg,
                     verbose=verbose)
+
+
+def _import_xp():
+    """
+    Allows us to import an array API standard-compliant library
+    `xp` based on an environment variable, and defaults to
+    NumPy.
+    """
+    backend = os.environ["ARR_TST_BACKEND"]
+    if backend == "numpy":
+        import numpy as xp
+    elif backend == "cupy":
+        import cupy as xp
+    elif backend == "pytorch":
+        import torch as xp
+    else:
+        raise ValueError(f"ARR_TST_BACKEND {backend} not recognized.")
+    return xp
