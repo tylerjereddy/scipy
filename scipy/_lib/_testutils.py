@@ -280,15 +280,18 @@ def _import_xp():
     `xp` based on an environment variable, and defaults to
     NumPy.
     """
-    backend = os.environ["ARR_TST_BACKEND"]
-    if backend == "numpy":
+    try:
+        backend = os.environ["ARR_TST_BACKEND"]
+        if backend == "numpy":
+            import numpy as xp
+        elif backend == "cupy":
+            import cupy as xp
+        elif backend == "pytorch":
+            import torch as xp
+        else:
+            raise ValueError(f"ARR_TST_BACKEND {backend} not recognized.")
+    except KeyError:
         import numpy as xp
-    elif backend == "cupy":
-        import cupy as xp
-    elif backend == "pytorch":
-        import torch as xp
-    else:
-        raise ValueError(f"ARR_TST_BACKEND {backend} not recognized.")
     return xp
 
 
