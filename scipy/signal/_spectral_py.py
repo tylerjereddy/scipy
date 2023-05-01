@@ -1884,9 +1884,9 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
         sides = 'twosided'
 
     if sides == 'twosided':
-        freqs = sp_fft.fftfreq(nfft, 1/fs)
+        freqs = xp.fft.fftfreq(nfft, 1/fs)
     elif sides == 'onesided':
-        freqs = sp_fft.rfftfreq(nfft, 1/fs)
+        freqs = xp.fft.rfftfreq(nfft, 1/fs)
 
     # Perform the windowed FFTs
     win = xp.asarray(win)

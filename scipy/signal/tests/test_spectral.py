@@ -13,7 +13,8 @@ from scipy.fft import fftfreq
 from scipy.signal import (periodogram, welch, lombscargle, csd, coherence,
                           spectrogram, stft, istft, check_COLA, check_NOLA)
 from scipy.signal._spectral_py import _spectral_helper
-from scipy._lib._testutils import _assert_allclose_host, _import_xp
+from scipy._lib._testutils import (_assert_allclose_host, _import_xp,
+                                   _assert_matching_namespace)
 xp = _import_xp()
 
 
@@ -248,6 +249,8 @@ class TestWelch:
         q = np.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
                       0.11111111])
         _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_real_onesided_odd(self):
         x = np.zeros(16)

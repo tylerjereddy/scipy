@@ -288,3 +288,13 @@ def _import_xp():
     else:
         raise ValueError(f"ARR_TST_BACKEND {backend} not recognized.")
     return xp
+
+
+def _assert_matching_namespace(a, b):
+    """
+    Check that a and b are in the same array namespace. Intended for
+    array API support/testing that array type in == array type out.
+    """
+    a_space = array_api_compat.array_namespace(a)
+    b_space = array_api_compat.array_namespace(b)
+    assert a_space == b_space
