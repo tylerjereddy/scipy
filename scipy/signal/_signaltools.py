@@ -3554,7 +3554,7 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
         # Find leastsq fit and remove it for each piece
         for m in range(Nreg):
             Npts = bp[m + 1] - bp[m]
-            A = xp.ones((Npts, 2), dtype)
+            A = xp.ones((Npts, 2), dtype=dtype)
             A[:, 0] = xp.arange(1, Npts + 1, dtype=dtype) / Npts
             sl = slice(bp[m], bp[m + 1])
             coef, resids, rank, s = linalg.lstsq(A, newdata[sl])
