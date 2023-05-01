@@ -7,7 +7,9 @@ import os
 import re
 import sys
 import numpy as np
+from numpy.testing import assert_allclose
 import inspect
+import array_api_compat
 
 
 __all__ = ['PytestTester', 'check_free_memory', '_TestPythranFunc']
@@ -240,3 +242,31 @@ def _get_mem_available():
             return info['memfree'] + info['cached']
 
     return None
+
+
+def _assert_allclose_host(a,
+                          b,
+                          rtol=1e-07,
+                          atol=0,
+                          equal_nan=True,
+                          err_msg="",
+                          verbose=True):
+    """
+    NumPy assert_allclose() with added enforcement that
+    both arguments are stored on the host. This is intended
+    to simplify testing of array API backends other than NumPy
+    for which we'd like to move the data back to the host before
+    checking against the expected value (i.e., with CuPy, Torch
+    on GPU).
+    """
+    # see: https://github.com/data-apis/array-api-compat/pull/40
+    # and: https://github.com/data-apis/array-api/issues/626
+    a = array_api_compat.to_device(a, "cpu")
+    b = array_api_compat.to_device(b, "cpu")
+    assert_allclose(a,
+                    b,
+                    rtol=rtol,
+                    atol=atol,
+                    equal_nan=equal_nan,
+                    err_msg=err_msg,
+                    verbose=verbose)
