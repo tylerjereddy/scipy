@@ -3557,16 +3557,10 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
             A = xp.ones((int(Npts), 2), dtype=dtype)
             A[:, 0] = xp.arange(1, Npts + 1, dtype=dtype) / Npts
             sl = slice(int(bp[m]), int(bp[m + 1]))
-            # TODO: lstsq isn't in the array API standard?
-            # for now, special casing with potential for unfortunate
-            # data movement/copies
+            # NOTE: lstsq isn't in the array API standard, so for now
+            # we cheat by using CuPy implementation if needed
             if "cupy" in xp.__name__:
-                A = A.get()
-                newdata = newdata.get()
-                coef, resids, rank, s = linalg.lstsq(A, newdata[sl])
-                A = xp.asarray(A)
-                newdata = xp.asarray(newdata)
-                coef = xp.asarray(coef)
+                coef, resids, rank, s = xp.linalg.lstsq(A, newdata[sl], rcond=None)
             else:
                 coef, resids, rank, s = linalg.lstsq(A, newdata[sl])
             newdata[sl] = newdata[sl] - A @ coef
