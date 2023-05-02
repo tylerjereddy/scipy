@@ -1747,7 +1747,6 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
     axis = int(axis)
 
     # Ensure we have np.arrays, get outdtype
-    xp = _get_namespace(x, y)
     x = xp.asarray(x)
     if not same_data:
         y = xp.asarray(y)
@@ -1960,7 +1959,6 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft, sides):
         # https://stackoverflow.com/a/5568169
         step = nperseg - noverlap
         shape = x.shape[:-1]+((x.shape[-1]-noverlap)//step, nperseg)
-        strides = x.strides[:-1]+(step*x.strides[-1], x.strides[-1])
         result = xp.empty(shape, dtype=x.dtype, device=array_api_compat.device(x))
         # NOTE: there is perhaps a dimensionally-agnostic
         # way to circumvent as_strided, but for now this is a modified

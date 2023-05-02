@@ -293,11 +293,6 @@ def _get_namespace(*xs):
     return xp
 
 
-
-def _asarray_flexible(args):
-    xp = _get_namespace(args)
-
-
 # Add a replacement for inspect.getfullargspec()/
 # The version below is borrowed from Django,
 # https://github.com/django/django/pull/4846.
