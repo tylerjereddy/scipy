@@ -1,6 +1,7 @@
 """Tools for spectral analysis.
 """
 
+import os
 import numpy as np
 from scipy import fft as sp_fft
 from scipy._lib._util import _get_namespace
@@ -1960,20 +1961,37 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft, sides):
         step = nperseg - noverlap
         shape = x.shape[:-1]+((x.shape[-1]-noverlap)//step, nperseg)
         result = xp.empty(shape, dtype=x.dtype, device=array_api_compat.device(x))
-        # NOTE: there is perhaps a dimensionally-agnostic
-        # way to circumvent as_strided, but for now this is a modified
-        # version of the shim described in gh-18286, which did not hold
-        # for 3D+ arrays
-        for ii in range(shape[0]):
-            if len(shape) == 2:
-                result[ii, :] = x[ii * step: (ii * step + nperseg)]
-            if len(shape) == 3:
-                for jj in range(shape[1]):
-                    result[ii, jj, :] = x[ii, jj * step: (jj * step + nperseg)]
-            if len(shape) == 4:
-                for jj in range(shape[1]):
-                    for kk in range(shape[2]):
-                        result[ii, jj, kk, :] = x[ii, jj, kk * step: (kk * step + nperseg)]
+        # as_strided makes a huge performance difference here,
+        # so we allow its usage when an array API library provides it
+        # despite its absence from the standard
+        # NOTE: we also provide an env variable for easy disabling
+        # of code paths that circumvent the array API for perf reasons
+        # NOTE: as_strided lives in different namespaces in different
+        # projects (i.e., top-level in torch, nested in CuPy/NumPy)
+        if "cupy" in xp.__name__ and not os.environ.get("SCIPY_STRICT_ARR_API"):
+            import cupy as cp
+            strides = x.strides[:-1]+(step*x.strides[-1], x.strides[-1])
+            result = cp.lib.stride_tricks.as_strided(x, shape=shape,
+                                                     strides=strides)
+        elif "numpy" in xp.__name__ and not os.environ.get("SCIPY_STRICT_ARR_API"):
+            strides = x.strides[:-1]+(step*x.strides[-1], x.strides[-1])
+            result = np.lib.stride_tricks.as_strided(x, shape=shape,
+                                                     strides=strides)
+        else:
+            # NOTE: there is perhaps a dimensionally-agnostic
+            # way to circumvent as_strided, but for now this is a modified
+            # version of the shim described in gh-18286, which did not hold
+            # for 3D+ arrays
+            for ii in range(shape[0]):
+                if len(shape) == 2:
+                    result[ii, :] = x[ii * step: (ii * step + nperseg)]
+                elif len(shape) == 3:
+                    for jj in range(shape[1]):
+                        result[ii, jj, :] = x[ii, jj * step: (jj * step + nperseg)]
+                elif len(shape) == 4:
+                    for jj in range(shape[1]):
+                        for kk in range(shape[2]):
+                            result[ii, jj, kk, :] = x[ii, jj, kk * step: (kk * step + nperseg)]
 
 
     # Detrend each data segment individually
