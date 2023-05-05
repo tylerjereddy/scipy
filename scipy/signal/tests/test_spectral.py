@@ -337,7 +337,7 @@ class TestWelch:
         _assert_matching_namespace(p, x)
 
     def test_unk_scaling(self):
-        assert_raises(ValueError, welch, xp.zeros(4, xp.complex128),
+        assert_raises(ValueError, welch, xp.zeros(4, dtype=xp.complex128),
                       scaling='foo', nperseg=4)
 
     def test_detrend_linear(self):

@@ -1749,11 +1749,14 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
 
     # Ensure we have np.arrays, get outdtype
     x = xp.asarray(x)
+    # TODO: remove temporary hack for:
+    # https://github.com/data-apis/array-api-compat/issues/43
+    tmp = xp.asarray([0], dtype=xp.complex64)
     if not same_data:
         y = xp.asarray(y)
         outdtype = xp.result_type(x, y, xp.complex64)
     else:
-        outdtype = xp.result_type(x, xp.complex64)
+        outdtype = xp.result_type(x, tmp)
 
     if not same_data:
         # Check if we can broadcast the outer axes together
@@ -1800,6 +1803,12 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
 
     # parse window; if array like, then set nperseg = win.shape
     win, nperseg = _triage_segments(window, nperseg, input_length=x.shape[-1])
+    # NOTE: asarray is API conformant, but I wonder
+    # if what really needs to happen is a deeper set of xp
+    # shims around the various window functions that ultimately
+    # get called by _triage_segments to avoid NumPy use more completely
+    # when not using NumPy?
+    win = xp.asarray(win)
 
     if nfft is None:
         nfft = nperseg
@@ -1855,7 +1864,9 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
     else:
         detrend_func = detrend
 
-    if xp.result_type(win, xp.complex64) != outdtype:
+    # TODO: remove tmp usage when this is fixed:
+    # https://github.com/data-apis/array-api-compat/issues/43
+    if xp.result_type(win, tmp) != outdtype:
         win = win.astype(outdtype)
 
     if scaling == 'density':
