@@ -286,7 +286,13 @@ def _import_xp():
             import numpy as xp
         elif backend == "cupy":
             import cupy as xp
-        elif backend == "pytorch":
+        elif backend == "pytorch_cpu":
+            import torch
+            torch.set_default_device("cpu")
+            import torch as xp
+        elif backend == "pytorch_gpu":
+            import torch
+            torch.set_default_device("cuda")
             import torch as xp
         else:
             raise ValueError(f"ARR_TST_BACKEND {backend} not recognized.")
