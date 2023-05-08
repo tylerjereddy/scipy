@@ -316,4 +316,11 @@ def _assert_array_almost_equal_nulp_host(x, y, nulp=1):
     # and: https://github.com/data-apis/array-api/issues/626
     x = array_api_compat.to_device(x, "cpu")
     y = array_api_compat.to_device(y, "cpu")
-    assert_array_almost_equal_nulp(x=x, y=y, nulp=nulp)
+    try:
+        assert_array_almost_equal_nulp(x=x, y=y, nulp=nulp)
+    except TypeError:
+        # unfortunately, we still need shims for Pytorch
+        # tensors x and y at the moment...
+        x = x.detach().cpu().numpy()
+        y = y.detach().cpu().numpy()
+        assert_array_almost_equal_nulp(x=x, y=y, nulp=nulp)

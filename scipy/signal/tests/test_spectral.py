@@ -325,7 +325,7 @@ class TestWelch:
         _assert_matching_namespace(p, x)
 
     def test_complex(self):
-        x = xp.zeros(16, np.complex128)
+        x = xp.zeros(16, dtype=xp.complex128)
         x[0] = 1.0 + 2.0j
         x[8] = 1.0 + 2.0j
         f, p = welch(x, nperseg=8, return_onesided=False)
@@ -466,7 +466,7 @@ class TestWelch:
         _assert_matching_namespace(p2, x)
 
     def test_window_long_or_nd(self):
-        assert_raises(ValueError, welch, xp.zeros(4), 1, xp.array([1,1,1,1,1]))
+        assert_raises(ValueError, welch, xp.zeros(4), 1, xp.asarray([1,1,1,1,1]))
         assert_raises(ValueError, welch, xp.zeros(4), 1,
                       xp.arange(6).reshape((2,3)))
 
@@ -487,13 +487,13 @@ class TestWelch:
         assert_raises(ValueError, welch, xp.ones(12), nfft=3, nperseg=4)
 
     def test_real_onesided_even_32(self):
-        x = xp.zeros(16, 'f')
+        x = xp.zeros(16, dtype=xp.float32)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8)
         _assert_allclose_host(f, np.linspace(0, 0.5, 5))
-        q = np.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
-                      0.11111111], 'f')
+        q = xp.asarray([0.08333333, 0.15277778, 0.22222222, 0.22222222,
+                      0.11111111], dtype=xp.float32)
         _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
         assert_(p.dtype == q.dtype)
         _assert_matching_namespace(f, x)
@@ -513,27 +513,27 @@ class TestWelch:
         _assert_matching_namespace(p, x)
 
     def test_real_twosided_32(self):
-        x = xp.zeros(16, 'f')
+        x = xp.zeros(16, dtype=xp.float32)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8, return_onesided=False)
         _assert_allclose_host(f, fftfreq(8, 1.0))
-        q = np.array([0.08333333, 0.07638889, 0.11111111,
+        q = xp.asarray([0.08333333, 0.07638889, 0.11111111,
                       0.11111111, 0.11111111, 0.11111111, 0.11111111,
-                      0.07638889], 'f')
+                      0.07638889], dtype=xp.float32)
         _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
         assert_(p.dtype == q.dtype)
         _assert_matching_namespace(f, x)
         _assert_matching_namespace(p, x)
 
     def test_complex_32(self):
-        x = xp.zeros(16, 'F')
+        x = xp.zeros(16, dtype=xp.complex64)
         x[0] = 1.0 + 2.0j
         x[8] = 1.0 + 2.0j
         f, p = welch(x, nperseg=8, return_onesided=False)
         _assert_allclose_host(f, fftfreq(8, 1.0))
-        q = np.array([0.41666666, 0.38194442, 0.55555552, 0.55555552,
-                      0.55555558, 0.55555552, 0.55555552, 0.38194442], 'f')
+        q = xp.asarray([0.41666666, 0.38194442, 0.55555552, 0.55555552,
+                      0.55555558, 0.55555552, 0.55555552, 0.38194442], dtype=xp.float32)
         _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
         assert_(p.dtype == q.dtype,
                 f'dtype mismatch, {p.dtype}, {q.dtype}')
