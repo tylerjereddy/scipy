@@ -3525,11 +3525,11 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
     if type not in ['linear', 'l', 'constant', 'c']:
         raise ValueError("Trend type must be 'linear' or 'constant'.")
     data = xp.asarray(data)
-    dtype = data.dtype.char
-    if dtype not in 'dfDF':
-        dtype = 'd'
+    dtype = data.dtype
+    if data.dtype not in [xp.float32, xp.float64, xp.complex128, xp.complex64]:
+        dtype = xp.float64
     if type in ['constant', 'c']:
-        ret = data - xp.mean(data, axis, keepdims=True)
+        ret = data - xp.mean(data, axis=axis, keepdims=True)
         return ret
     else:
         dshape = data.shape

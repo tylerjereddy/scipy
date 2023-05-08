@@ -2,6 +2,7 @@
 """
 
 import os
+import math
 import numpy as np
 from scipy import fft as sp_fft
 from scipy._lib._util import _get_namespace
@@ -595,7 +596,7 @@ def csd(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None, nfft=None,
                                      mode='psd')
 
     # Average over windows.
-    if len(Pxy.shape) >= 2 and Pxy.size > 0:
+    if len(Pxy.shape) >= 2 and math.prod(Pxy.shape) > 0:
         if Pxy.shape[-1] > 1:
             if average == 'median':
                 # np.median must be passed real arrays for the desired result
@@ -1867,7 +1868,12 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
     # TODO: remove tmp usage when this is fixed:
     # https://github.com/data-apis/array-api-compat/issues/43
     if xp.result_type(win, tmp) != outdtype:
-        win = win.astype(outdtype)
+        try:
+            win = win.astype(outdtype)
+        except AttributeError:
+            # TODO: remove this shim when array-api-compat
+            # has suitable shims for complex types? (PyTorch related)
+            win = win.to(outdtype)
 
     if scaling == 'density':
         scale = 1.0 / (fs * (win*win).sum())
@@ -1880,7 +1886,13 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
         scale = xp.sqrt(scale)
 
     if return_onesided:
-        if xp.iscomplexobj(x):
+        try:
+            is_complex = xp.iscomplexobj(x)
+        except AttributeError:
+            # TODO: deal with PyTorch vs. other libs here...
+            is_complex = xp.is_complex(x)
+
+        if is_complex:
             sides = 'twosided'
             warnings.warn('Input data is complex, switching to '
                           'return_onesided=False')
@@ -1907,9 +1919,9 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
         # All the same operations on the y data
         result_y = _fft_helper(y, win, detrend_func, nperseg, noverlap, nfft,
                                sides)
-        result = xp.conjugate(result) * result_y
+        result = xp.conj(result) * result_y
     elif mode == 'psd':
-        result = xp.conjugate(result) * result
+        result = xp.conj(result) * result
 
     result *= scale
     if sides == 'onesided' and mode == 'psd':
@@ -1924,7 +1936,11 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
     if boundary is not None:
         time -= (nperseg/2) / fs
 
-    result = result.astype(outdtype)
+    try:
+        result = result.astype(outdtype)
+    except AttributeError:
+        # TODO: handle complex types for PyTorch
+        result = result.to(outdtype)
 
     # All imaginary parts are zero anyways
     if same_data and mode != 'stft':

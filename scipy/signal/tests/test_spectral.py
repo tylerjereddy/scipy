@@ -500,13 +500,13 @@ class TestWelch:
         _assert_matching_namespace(p, x)
 
     def test_real_onesided_odd_32(self):
-        x = xp.zeros(16, 'f')
+        x = xp.zeros(16, dtype=xp.float32)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=9)
         _assert_allclose_host(f, np.arange(5.0)/9.0)
-        q = np.array([0.12477458, 0.23430935, 0.17072113, 0.17072116,
-                      0.17072113], 'f')
+        q = xp.asarray([0.12477458, 0.23430935, 0.17072113, 0.17072116,
+                      0.17072113], dtype=xp.float32)
         _assert_allclose_host(p, q, atol=1e-7, rtol=1e-7)
         assert_(p.dtype == q.dtype)
         _assert_matching_namespace(f, x)
