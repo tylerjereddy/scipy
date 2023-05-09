@@ -396,7 +396,7 @@ class TestWelch:
         f0, p0 = welch(x[0,0,:], nperseg=10)
         _assert_matching_namespace(f0, x)
         _assert_matching_namespace(p0, x)
-        _assert_allclose_host(p0[xp.newaxis,:], p[1,:], atol=1e-13, rtol=1e-13)
+        _assert_allclose_host(p0[None,:], p[1,:], atol=1e-13, rtol=1e-13)
 
     def test_nd_axis_0(self):
         x = xp.arange(20, dtype=xp.float64) + 0.04

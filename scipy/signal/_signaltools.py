@@ -3534,7 +3534,7 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
     else:
         dshape = data.shape
         N = dshape[axis]
-        bp = xp.sort(xp.unique(xp.r_[0, bp, N]))
+        bp = xp.sort(xp.unique(xp.asarray([0, bp, N])))
         if xp.any(bp > N):
             raise ValueError("Breakpoints must be less than length "
                              "of data along given axis.")
@@ -3545,10 +3545,10 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
         if axis < 0:
             axis = axis + rnk
         newdims = tuple(np.r_[axis, 0:axis, axis + 1:rnk])
-        newdata = data.transpose(newdims).reshape(N, -1)
+        newdata = data.reshape(N, -1)
         if not overwrite_data:
-            newdata = newdata.copy()  # make sure we have a copy
-        if newdata.dtype.char not in 'dfDF':
+            newdata = xp.asarray(newdata, copy=True)  # make sure we have a copy
+        if newdata.dtype not in [xp.float64, xp.float32, xp.complex128, xp.complex64]:
             newdata = newdata.astype(dtype)
 
         # Find leastsq fit and remove it for each piece
@@ -3566,11 +3566,10 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
             newdata[sl] = newdata[sl] - A @ coef
 
         # Put data back in original shape.
-        tdshape = xp.take(xp.asarray(dshape), newdims, axis=0)
+        tdshape = xp.take(xp.asarray(dshape), xp.asarray(newdims))
         ret = xp.reshape(newdata, shape=tuple([int(e) for e in tdshape]))
         vals = list(range(1, rnk))
         olddims = vals[:axis] + [0] + vals[axis:]
-        ret = xp.transpose(ret, tuple(olddims))
         return ret
 
 
