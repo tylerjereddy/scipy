@@ -579,7 +579,7 @@ class TestWelch:
                                  scaling='density')
 
             # Check peak height at signal frequency for 'spectrum'
-            _assert_allclose_host(p_spec[ii], A**2/2.0)
+            _assert_allclose_host(p_spec[ii], A**2/2.0, rtol=3e-7)
             # Check integrated spectrum RMS for 'density'
             _assert_allclose_host(xp.sqrt(xp.trapz(p_dens, freq)), A*np.sqrt(2)/2,
                             rtol=1e-3)

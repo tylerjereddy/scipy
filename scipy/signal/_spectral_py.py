@@ -456,12 +456,14 @@ def welch(x, fs=1.0, window='hann', nperseg=None, noverlap=None, nfft=None,
     >>> plt.show()
 
     """
+    xp = _get_namespace(x)
     freqs, Pxx = csd(x, x, fs=fs, window=window, nperseg=nperseg,
                      noverlap=noverlap, nfft=nfft, detrend=detrend,
                      return_onesided=return_onesided, scaling=scaling,
                      axis=axis, average=average)
 
-    return freqs, Pxx.real
+    # TODO: remove coercion here I think, was needed for PyTorch
+    return freqs, xp.asarray(Pxx.real)
 
 
 def csd(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None, nfft=None,
