@@ -7,7 +7,9 @@ import os
 import re
 import sys
 import numpy as np
+from numpy.testing import assert_allclose, assert_array_almost_equal_nulp
 import inspect
+import array_api_compat
 
 
 __all__ = ['PytestTester', 'check_free_memory', '_TestPythranFunc']
@@ -240,3 +242,85 @@ def _get_mem_available():
             return info['memfree'] + info['cached']
 
     return None
+
+
+def _assert_allclose_host(a,
+                          b,
+                          rtol=1e-07,
+                          atol=0,
+                          equal_nan=True,
+                          err_msg="",
+                          verbose=True):
+    """
+    NumPy assert_allclose() with added enforcement that
+    both arguments are stored on the host. This is intended
+    to simplify testing of array API backends other than NumPy
+    for which we'd like to move the data back to the host before
+    checking against the expected value (i.e., with CuPy, Torch
+    on GPU).
+    """
+    # see: https://github.com/data-apis/array-api-compat/pull/40
+    # and: https://github.com/data-apis/array-api/issues/626
+    if not isinstance(a, float):
+        a = array_api_compat.to_device(a, "cpu")
+    if not isinstance(b, float):
+        b = array_api_compat.to_device(b, "cpu")
+    assert_allclose(a,
+                    b,
+                    rtol=rtol,
+                    atol=atol,
+                    equal_nan=equal_nan,
+                    err_msg=err_msg,
+                    verbose=verbose)
+
+
+def _import_xp():
+    """
+    Allows us to import an array API standard-compliant library
+    `xp` based on an environment variable, and defaults to
+    NumPy.
+    """
+    try:
+        backend = os.environ["ARR_TST_BACKEND"]
+        if backend == "numpy":
+            import numpy as xp
+        elif backend == "cupy":
+            import cupy as xp
+        elif backend == "pytorch_cpu":
+            import torch
+            torch.set_default_device("cpu")
+            import torch as xp
+        elif backend == "pytorch_gpu":
+            import torch
+            torch.set_default_device("cuda")
+            import torch as xp
+        else:
+            raise ValueError(f"ARR_TST_BACKEND {backend} not recognized.")
+    except KeyError:
+        import numpy as xp
+    return xp
+
+
+def _assert_matching_namespace(a, b):
+    """
+    Check that a and b are in the same array namespace. Intended for
+    array API support/testing that array type in == array type out.
+    """
+    a_space = array_api_compat.array_namespace(a)
+    b_space = array_api_compat.array_namespace(b)
+    assert a_space == b_space
+
+
+def _assert_array_almost_equal_nulp_host(x, y, nulp=1):
+    # see: https://github.com/data-apis/array-api-compat/pull/40
+    # and: https://github.com/data-apis/array-api/issues/626
+    x = array_api_compat.to_device(x, "cpu")
+    y = array_api_compat.to_device(y, "cpu")
+    try:
+        assert_array_almost_equal_nulp(x=x, y=y, nulp=nulp)
+    except TypeError:
+        # unfortunately, we still need shims for Pytorch
+        # tensors x and y at the moment...
+        x = x.detach().cpu().numpy()
+        y = y.detach().cpu().numpy()
+        assert_array_almost_equal_nulp(x=x, y=y, nulp=nulp)

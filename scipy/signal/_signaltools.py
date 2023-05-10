@@ -18,6 +18,7 @@ from ._arraytools import axis_slice, axis_reverse, odd_ext, even_ext, const_ext
 from ._filter_design import cheby1, _validate_sos, zpk2sos
 from ._fir_filter_design import firwin
 from ._sosfilt import _sosfilt
+from scipy._lib._util import _get_namespace
 import warnings
 
 
@@ -3520,20 +3521,21 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
     0.06  # random
 
     """
+    xp = _get_namespace(data)
     if type not in ['linear', 'l', 'constant', 'c']:
         raise ValueError("Trend type must be 'linear' or 'constant'.")
-    data = np.asarray(data)
-    dtype = data.dtype.char
-    if dtype not in 'dfDF':
-        dtype = 'd'
+    data = xp.asarray(data)
+    dtype = data.dtype
+    if data.dtype not in [xp.float32, xp.float64, xp.complex128, xp.complex64]:
+        dtype = xp.float64
     if type in ['constant', 'c']:
-        ret = data - np.mean(data, axis, keepdims=True)
+        ret = data - xp.mean(xp.asarray(data, dtype=dtype), axis=axis, keepdims=True)
         return ret
     else:
         dshape = data.shape
         N = dshape[axis]
-        bp = np.sort(np.unique(np.r_[0, bp, N]))
-        if np.any(bp > N):
+        bp = xp.sort(xp.unique(xp.asarray([0, bp, N])))
+        if xp.any(bp > N):
             raise ValueError("Breakpoints must be less than length "
                              "of data along given axis.")
         Nreg = len(bp) - 1
@@ -3543,28 +3545,31 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
         if axis < 0:
             axis = axis + rnk
         newdims = tuple(np.r_[axis, 0:axis, axis + 1:rnk])
-        newdata = data.transpose(newdims).reshape(N, -1)
-
+        newdata = data.reshape(N, -1)
         if not overwrite_data:
-            newdata = newdata.copy()  # make sure we have a copy
-        if newdata.dtype.char not in 'dfDF':
+            newdata = xp.asarray(newdata, copy=True)  # make sure we have a copy
+        if newdata.dtype not in [xp.float64, xp.float32, xp.complex128, xp.complex64]:
             newdata = newdata.astype(dtype)
 
         # Find leastsq fit and remove it for each piece
         for m in range(Nreg):
             Npts = bp[m + 1] - bp[m]
-            A = np.ones((Npts, 2), dtype)
-            A[:, 0] = np.arange(1, Npts + 1, dtype=dtype) / Npts
-            sl = slice(bp[m], bp[m + 1])
-            coef, resids, rank, s = linalg.lstsq(A, newdata[sl])
+            A = xp.ones((int(Npts), 2), dtype=dtype)
+            A[:, 0] = xp.arange(1, Npts + 1, dtype=dtype) / Npts
+            sl = slice(int(bp[m]), int(bp[m + 1]))
+            # NOTE: lstsq isn't in the array API standard, so for now
+            # we cheat by using CuPy implementation if needed
+            if "cupy" in xp.__name__ or "torch" in xp.__name__:
+                coef, resids, rank, s = xp.linalg.lstsq(A, newdata[sl], rcond=None)
+            else:
+                coef, resids, rank, s = linalg.lstsq(A, newdata[sl])
             newdata[sl] = newdata[sl] - A @ coef
 
         # Put data back in original shape.
-        tdshape = np.take(dshape, newdims, 0)
-        ret = np.reshape(newdata, tuple(tdshape))
+        tdshape = xp.take(xp.asarray(dshape), xp.asarray(newdims))
+        ret = xp.reshape(newdata, shape=tuple([int(e) for e in tdshape]))
         vals = list(range(1, rnk))
         olddims = vals[:axis] + [0] + vals[axis:]
-        ret = np.transpose(ret, tuple(olddims))
         return ret
 
 

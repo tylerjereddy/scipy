@@ -15,6 +15,7 @@ from typing import (
 )
 
 import numpy as np
+import array_api_compat
 
 IntNumber = Union[int, np.integer]
 DecimalNumber = Union[float, np.floating, np.integer]
@@ -273,6 +274,23 @@ def _validate_int(k, name, minimum=None):
         raise ValueError(f'{name} must be an integer not less '
                          f'than {minimum}') from None
     return k
+
+
+def _get_namespace(*xs):
+    namespaces = set()
+    for x in xs:
+        if isinstance(x, list):
+            # When a list is involved, we default to NumPy,
+            # as before supporting multiple array namespaces.
+            x = array_api_compat.array_namespace(np.asarray(x))
+        else:
+            x = array_api_compat.array_namespace(x)
+        namespaces.add(x)
+
+    if len(namespaces) != 1:
+        raise TypeError("Input array-like objects do not belong to the same array namespace.")
+    xp, = namespaces
+    return xp
 
 
 # Add a replacement for inspect.getfullargspec()/
