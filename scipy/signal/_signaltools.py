@@ -3559,7 +3559,7 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
             sl = slice(int(bp[m]), int(bp[m + 1]))
             # NOTE: lstsq isn't in the array API standard, so for now
             # we cheat by using CuPy implementation if needed
-            if "cupy" in xp.__name__:
+            if "cupy" in xp.__name__ or "torch" in xp.__name__:
                 coef, resids, rank, s = xp.linalg.lstsq(A, newdata[sl], rcond=None)
             else:
                 coef, resids, rank, s = linalg.lstsq(A, newdata[sl])

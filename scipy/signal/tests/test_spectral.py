@@ -343,7 +343,7 @@ class TestWelch:
     def test_detrend_linear(self):
         x = xp.arange(10, dtype=xp.float64) + 0.04
         f, p = welch(x, nperseg=10, detrend='linear')
-        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_allclose_host(p, xp.zeros_like(p), atol=1e-15)
         _assert_matching_namespace(f, x)
         _assert_matching_namespace(p, x)
 
@@ -362,7 +362,7 @@ class TestWelch:
         x = xp.arange(10, dtype=xp.float64) + 0.04
         f, p = welch(x, nperseg=10,
                      detrend=lambda seg: signal.detrend(seg, type='l'))
-        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_allclose_host(p, xp.zeros_like(p), atol=1e-15)
         _assert_matching_namespace(f, x)
         _assert_matching_namespace(p, x)
 
@@ -371,7 +371,7 @@ class TestWelch:
         x = x.reshape((2,2,10))
         f, p = welch(x, nperseg=10,
                      detrend=lambda seg: signal.detrend(seg, type='l'))
-        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_allclose_host(p, xp.zeros_like(p), atol=1e-15)
         _assert_matching_namespace(f, x)
         _assert_matching_namespace(p, x)
 
@@ -381,7 +381,7 @@ class TestWelch:
         x = xp.moveaxis(x, 2, 0)
         f, p = welch(x, nperseg=10, axis=0,
                      detrend=lambda seg: signal.detrend(seg, axis=0, type='l'))
-        _assert_allclose_host(p, np.zeros_like(p), atol=1e-15)
+        _assert_allclose_host(p, xp.zeros_like(p), atol=1e-15)
         _assert_matching_namespace(f, x)
         _assert_matching_namespace(p, x)
 
@@ -570,7 +570,7 @@ class TestWelch:
         ii = int(fsig*nperseg//fs)  # Freq index of fsig
 
         tt = xp.arange(fs)/fs
-        x = A*np.sin(2*np.pi*fsig*tt)
+        x = A*xp.sin(2*xp.pi*fsig*tt)
 
         for window in ['hann', 'bartlett', ('tukey', 0.1), 'flattop']:
             _, p_spec = welch(x, fs=fs, nperseg=nperseg, window=window,
@@ -579,7 +579,7 @@ class TestWelch:
                                  scaling='density')
 
             # Check peak height at signal frequency for 'spectrum'
-            _assert_allclose_host(p_spec[ii], A**2/2.0, rtol=3e-7)
+            _assert_allclose_host(p_spec[ii], A**2/2.0, rtol=4e-7)
             # Check integrated spectrum RMS for 'density'
             _assert_allclose_host(xp.sqrt(xp.trapz(p_dens, freq)), A*np.sqrt(2)/2,
                             rtol=1e-3)

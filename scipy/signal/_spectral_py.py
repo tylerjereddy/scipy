@@ -597,25 +597,36 @@ def csd(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None, nfft=None,
                                      detrend, return_onesided, scaling, axis,
                                      mode='psd')
 
+    xp = _get_namespace(x, y)
     # Average over windows.
     if len(Pxy.shape) >= 2 and math.prod(Pxy.shape) > 0:
         if Pxy.shape[-1] > 1:
             if average == 'median':
                 # np.median must be passed real arrays for the desired result
                 bias = _median_bias(Pxy.shape[-1])
-                if np.iscomplexobj(Pxy):
-                    Pxy = (np.median(np.real(Pxy), axis=-1)
-                           + 1j * np.median(np.imag(Pxy), axis=-1))
+                if Pxy.dtype in [xp.complex64, xp.complex128]:
+                    Pxy = (xp.median(xp.real(Pxy), axis=-1)
+                           + 1j * xp.median(xp.imag(Pxy), axis=-1))
                 else:
-                    Pxy = np.median(Pxy, axis=-1)
-                Pxy /= bias
+                    Pxy = xp.median(Pxy, axis=-1)
+                # for PyTorch, Pxy is torch.return_types.median
+                # which is super confusing...
+                # NOTE: I don't actually see median in the API std
+                try:
+                    device_pxy = array_api_compat.device(Pxy)
+                except AttributeError:
+                    Pxy = Pxy.values
+                    device_pxy = array_api_compat.device(Pxy)
+                bias = xp.asarray(bias)
+                bias = array_api_compat.to_device(bias, device_pxy)
+                Pxy = Pxy / bias
             elif average == 'mean':
                 Pxy = Pxy.mean(axis=-1)
             else:
                 raise ValueError('average must be "median" or "mean", got %s'
                                  % (average,))
         else:
-            Pxy = np.reshape(Pxy, Pxy.shape[:-1])
+            Pxy = xp.reshape(Pxy, Pxy.shape[:-1])
 
     return freqs, Pxy
 
@@ -2033,6 +2044,11 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft, sides):
     result = detrend_func(result)
 
     # Apply window by multiplication
+    # NOTE: win not always on torch CUDA device here
+    # when using PyTorch with GPU tensors
+    # probably need a deeper analysis to avoid this shim
+    result_device = array_api_compat.device(result)
+    win = array_api_compat.to_device(win, result_device)
     result = win * result
 
     # Perform the fft. Acts on last axis by default. Zero-pads automatically
