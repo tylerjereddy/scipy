@@ -2023,6 +2023,10 @@ def _fft_helper(x, win, detrend_func, nperseg, noverlap, nfft, sides):
             strides = x.strides[:-1]+(step*x.strides[-1], x.strides[-1])
             result = np.lib.stride_tricks.as_strided(x, shape=shape,
                                                      strides=strides)
+        elif "torch" in xp.__name__ and not os.environ.get("SCIPY_STRICT_ARR_API"):
+            import torch
+            strides = x.stride()[:-1]+(step*x.stride()[-1], x.stride()[-1])
+            result = torch.as_strided(x, size=shape, stride=strides)
         else:
             # NOTE: there is perhaps a dimensionally-agnostic
             # way to circumvent as_strided, but for now this is a modified
