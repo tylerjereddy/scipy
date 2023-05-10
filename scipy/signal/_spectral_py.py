@@ -1773,7 +1773,13 @@ def _spectral_helper(x, y, fs=1.0, window='hann', nperseg=None, noverlap=None,
             raise ValueError('x and y cannot be broadcast together.') from e
 
     if same_data:
-        if x.size == 0:
+        # TODO: what to do about PyTorch not treating
+        # size as a property, and doing weird stuff
+        # with size() in general (uses subclass of tuple...)
+        size = x.size
+        if not isinstance(size, int):
+            size = math.prod(x.shape)
+        if size == 0:
             return xp.empty(x.shape), xp.empty(x.shape), xp.empty(x.shape)
     else:
         if x.size == 0 or y.size == 0:
