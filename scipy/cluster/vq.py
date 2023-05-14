@@ -64,7 +64,9 @@ human face, more flesh-tone colors would be represented in the
 code book.
 
 """
+import re
 import warnings
+import math
 import numpy as np
 from collections import deque
 from scipy._lib._array_api import as_xparray, array_namespace
@@ -201,7 +203,19 @@ def vq(obs, code_book, check_finite=True):
     xp = array_namespace(obs, code_book)
     obs = as_xparray(obs, xp=xp, check_finite=check_finite)
     code_book = as_xparray(code_book, xp=xp, check_finite=check_finite)
-    ct = xp.common_type(obs, code_book)
+    # NOTE: terrible hack for absence of common_type
+    # in array API
+    prog = re.compile(r".*")
+    obs_type_str = prog.match(str(obs.dtype))
+    print("str(obs.dtype):", str(obs.dtype))
+    print("obs_type_str:", obs_type_str)
+    code_book_type_str = str(code_book.dtype).split(".")[1]
+    obs_np_type = getattr(np, obs_type_str)
+    code_book_np_type = getattr(np, code_book_type_str)
+    ct = np.common_type(np.array([0], dtype=obs_np_type), 
+                        np.array([0], dtype=code_book_np_type))
+    ct_str = str(ct).split(".")[1]
+    ct = getattr(xp, ct_str)
 
     c_obs = obs.astype(ct, copy=False)
     c_code_book = code_book.astype(ct, copy=False)
@@ -456,11 +470,16 @@ def kmeans(obs, k_or_guess, iter=20, thresh=1e-5, check_finite=True,
         raise ValueError("iter must be at least 1, got %s" % iter)
 
     # Determine whether a count (scalar) or an initial guess (array) was passed.
-    if guess.size > 1:
-        if guess.size < 1:
+    # NOTE: tensorflow array API shim
+    # for size being weird
+    guess_size = guess.size
+    if not isinstance(guess_size, int):
+        guess_size = math.prod(guess_size())
+    if guess_size > 1:
+        if guess_size < 1:
             raise ValueError("Asked for 0 clusters. Initial book was %s" %
                              guess)
-        elif guess.size > 1:
+        elif guess_size > 1:
             return _kmeans(obs, guess, thresh=thresh, xp=xp)
 
     # k_or_guess is a scalar, now verify that it's an integer
@@ -760,11 +779,19 @@ def kmeans2(data, k, iter=10, thresh=1e-5, minit='random',
     else:
         raise ValueError("Input of rank > 2 is not supported.")
 
-    if data.size < 1 or code_book.size < 1:
+    # NOTE: array API tensorflow size
+    # shims
+    data_size = data.size
+    if not isinstance(data_size, int):
+        data_size = math.prod(data_size())
+    code_book_size = code_book.size
+    if not isinstance(code_book_size, int):
+        code_book_size = math.prod(code_book_size())
+    if data_size < 1 or code_book_size < 1:
         raise ValueError("Empty input is not supported.")
 
     # If k is not a single value, it should be compatible with data's shape
-    if minit == 'matrix' or code_book.size > 1:
+    if minit == 'matrix' or code_book_size > 1:
         if data.ndim != code_book.ndim:
             raise ValueError("k array doesn't match data rank")
         nc = len(code_book)
