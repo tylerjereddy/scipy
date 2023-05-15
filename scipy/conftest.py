@@ -112,6 +112,16 @@ if SCIPY_ARRAY_API:
         array_api_available_backends.update({'pytorch': torch})
     except ImportError:
         pass
+    if "pytorch" in array_api_available_backends:
+        try:
+            torch.set_default_device("cuda")
+        except NotImplementedError:
+            pass
+        else:
+            array_api_available_backends.update({'pytorch_cuda': torch})
+        finally:
+            torch.set_default_device("cpu")
+
 
     array_api_backends = (np, numpy.array_api)
 
