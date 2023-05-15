@@ -275,6 +275,7 @@ cdef np.ndarray _update_cluster_means(vq_type *obs, int32_t *labels,
     # Calculate the sums the numbers of obs in each cluster
     obs_count = np.zeros(nc, np.intc)
     obs_p = obs
+    print('nfeat:', nfeat)
     for i in range(nobs):
         label = labels[i]
         cb_p = cb + nfeat * label
@@ -293,6 +294,8 @@ cdef np.ndarray _update_cluster_means(vq_type *obs, int32_t *labels,
         if cluster_size > 0:
             # Calculate the centroid of each cluster
             for j in range(nfeat):
+                print("cb_p[j]:", cb_p[j])
+                print("cluster_size:", cluster_size)
                 cb_p[j] /= cluster_size
 
         cb_p += nfeat
@@ -352,6 +355,7 @@ def update_cluster_means(np.ndarray obs, np.ndarray labels, int nc):
     else:
         raise ValueError('ndim different than 1 or 2 are not supported')
 
+    print("nfeat before:", nfeat)
     if obs.dtype.type is np.float32:
         has_members = _update_cluster_means(<float32_t *>obs.data,
                                             <int32_t *>labels.data,

@@ -205,22 +205,27 @@ def vq(obs, code_book, check_finite=True):
     code_book = as_xparray(code_book, xp=xp, check_finite=check_finite)
     # NOTE: terrible hack for absence of common_type
     # in array API
-    prog = re.compile(r".*")
-    obs_type_str = prog.match(str(obs.dtype))
     print("str(obs.dtype):", str(obs.dtype))
-    print("obs_type_str:", obs_type_str)
-    code_book_type_str = str(code_book.dtype).split(".")[1]
+    prog = re.compile(r".*((float|int|complex)\d+)")
+    index = 1
+    obs_type_str = prog.match(str(obs.dtype)).group(index)
+    #print("obs_type_str:", obs_type_str)
+    #print("obs_type_str.group(1):", obs_type_str.group(1))
+    code_book_type_str = prog.match(str(code_book.dtype)).group(index)
     obs_np_type = getattr(np, obs_type_str)
     code_book_np_type = getattr(np, code_book_type_str)
     ct = np.common_type(np.array([0], dtype=obs_np_type), 
                         np.array([0], dtype=code_book_np_type))
-    ct_str = str(ct).split(".")[1]
+    print("str(ct):", str(ct))
+    ct_str = prog.match(str(ct)).group(index)
     ct = getattr(xp, ct_str)
 
-    c_obs = obs.astype(ct, copy=False)
-    c_code_book = code_book.astype(ct, copy=False)
+    c_obs = xp.asarray(obs, dtype=ct)
+    c_code_book = xp.asarray(code_book, dtype=ct)
 
-    if xp.issubdtype(ct, xp.float64) or xp.issubdtype(ct, xp.float32):
+    # this is a Cython code path, so we really do
+    # need to check against NumPy types here
+    if ct == np.float64 or ct == np.float32:
         return _vq.vq(c_obs, c_code_book)
     return py_vq(obs, code_book, check_finite=False)
 
@@ -263,6 +268,7 @@ def py_vq(obs, code_book, check_finite=True):
 
     """
     xp = array_namespace(obs, code_book)
+    print("py_vq xp:", xp)
     obs = as_xparray(obs, xp=xp, check_finite=check_finite)
     code_book = as_xparray(code_book, xp=xp, check_finite=check_finite)
 
@@ -276,6 +282,7 @@ def py_vq(obs, code_book, check_finite=True):
     dist = cdist(obs, code_book)
     code = dist.argmin(axis=1)
     min_dist = dist[xp.arange(len(code)), code]
+    print("py_vq returning type(code), type(min_dist):", type(code), type(min_dist))
     return code, min_dist
 
 
@@ -770,6 +777,7 @@ def kmeans2(data, k, iter=10, thresh=1e-5, minit='random',
         raise ValueError(f"Unknown missing method {missing!r}") from e
 
     xp = array_namespace(data, k)
+    print("**xp:", xp)
     data = as_xparray(data, xp=xp, check_finite=check_finite)
     code_book = as_xparray(k, xp=xp, copy=True)
     if data.ndim == 1:
@@ -817,8 +825,16 @@ def kmeans2(data, k, iter=10, thresh=1e-5, minit='random',
     for i in range(iter):
         # Compute the nearest neighbor for each obs using the current code book
         label = vq(data, code_book, check_finite=check_finite)[0]
+        print("type(label):", type(label))
         # Update the code book by computing centroids
-        new_code_book, has_members = _vq.update_cluster_means(data, label, nc)
+        if "numpy" in xp.__name__:
+            new_code_book, has_members = _vq.update_cluster_means(data, label, nc)
+        else:
+            # array API -- can't use Cython...
+            for j in range(nc):
+                mbs = xp.where(label == j, label, j)
+                if math.prod(mbs[0].size) > 0:
+                    code_book[j] = xp.mean(data[mbs], axis=0)
         if not has_members.all():
             miss_meth()
             # Set the empty clusters to their previous positions
