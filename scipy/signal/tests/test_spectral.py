@@ -248,8 +248,7 @@ class TestWelch:
         q = np.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
                       0.11111111])
         assert_allclose(p, q, atol=1e-7, rtol=1e-7)
-        _assert_matching_namespace(f, x)
-        _assert_matching_namespace(p, x)
+        _assert_matching_namespace((f, p), x)
 
     def test_real_onesided_odd(self):
         x = np.zeros(16)
