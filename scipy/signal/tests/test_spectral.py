@@ -12,6 +12,8 @@ from scipy.fft import fftfreq
 from scipy.signal import (periodogram, welch, lombscargle, csd, coherence,
                           spectrogram, stft, istft, check_COLA, check_NOLA)
 from scipy.signal._spectral_py import _spectral_helper
+from scipy.conftest import array_api_compatible
+from scipy._lib._testutils import _assert_matching_namespace
 
 
 class TestPeriodogram:
@@ -236,8 +238,9 @@ class TestPeriodogram:
 
 
 class TestWelch:
-    def test_real_onesided_even(self):
-        x = np.zeros(16)
+    @array_api_compatible
+    def test_real_onesided_even(self, xp):
+        x = xp.zeros(16)
         x[0] = 1
         x[8] = 1
         f, p = welch(x, nperseg=8)
@@ -245,6 +248,8 @@ class TestWelch:
         q = np.array([0.08333333, 0.15277778, 0.22222222, 0.22222222,
                       0.11111111])
         assert_allclose(p, q, atol=1e-7, rtol=1e-7)
+        _assert_matching_namespace(f, x)
+        _assert_matching_namespace(p, x)
 
     def test_real_onesided_odd(self):
         x = np.zeros(16)

@@ -8,6 +8,7 @@ import re
 import sys
 import numpy as np
 import inspect
+import array_api_compat
 
 
 __all__ = ['PytestTester', 'check_free_memory', '_TestPythranFunc']
@@ -240,3 +241,9 @@ def _get_mem_available():
             return info['memfree'] + info['cached']
 
     return None
+
+
+def _assert_matching_namespace(a, b):
+    a_space = array_api_compat.array_namespace(a)
+    b_space = array_api_compat.array_namespace(b)
+    assert a_space == b_space
