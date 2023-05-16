@@ -143,4 +143,5 @@ macos_arm64_test_task:
     python -m pip install click rich_click doit pydevtool
     python -m pip install pytest pooch
     export DYLD_LIBRARY_PATH=/usr/local/gfortran/lib:/opt/arm64-builds/lib
-    python dev.py test
+    # spot check array API torch MPS device compliance
+    SCIPY_TORCH_DEVICE=mps python dev.py test -b numpy -b pytorch -s cluster
