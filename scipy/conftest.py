@@ -132,6 +132,10 @@ if SCIPY_ARRAY_API:
 
 array_api_compatible = pytest.mark.parametrize("xp", array_api_backends)
 
+if "pytorch" in array_api_available_backends:
+    torch_device_setting = os.environ.get("SCIPY_TORCH_DEVICE", "cpu")
+    torch.set_default_device(torch_device_setting)
+
 skip_if_array_api = pytest.mark.skipif(
     SCIPY_ARRAY_API,
     reason="do not run with Array API on",
