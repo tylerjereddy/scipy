@@ -26,9 +26,10 @@ For running on PyPy, PyPy3 6.0+ is required.
 Highlights of this release
 **************************
 
-- Several `scipy.sparse` array API improvements, including a new public base
-  class distinct from the older matrix class, proper 64-bit index support,
-  and numerous deprecations paving the way to a modern sparse array experience.
+- Several `scipy.sparse` array API improvements, including `sparse.sparray`, a new
+  public base class distinct from the older `sparse.spmatrix` class,
+  proper 64-bit index support, and numerous deprecations paving the way to a
+  modern sparse array experience.
 - Added three new statistical distributions, and wide-ranging performance and
   precision improvements to several other statistical distributions.
 - A new function was added for quasi-Monte Carlo integration, and linear
@@ -106,23 +107,23 @@ New features
 
 `scipy.sparse` improvements
 ===========================
-- `scipy.sparse` array (not matrix) classes now return a sparse array instead
-  of a dense array when divided by a dense array.
-- A new public base class `scipy.sparse.sparray` was introduced, allowing
+- A new public base class `scipy.sparse.sparray` was introduced, allowing further
+  extension of the sparse array API (like support for 1- and n-dimensional sparse
+  arrays) without breaking backwards compatibility.
   `isinstance(x, scipy.sparse.sparray)` to select the new sparse array classes,
   while `isinstance(x, scipy.sparse.spmatrix)` selects only the old sparse
-  matrix types.
-- The behavior of `scipy.sparse.isspmatrix()` was updated to return True for
-  only the sparse matrix types. If you want to check for either sparse arrays
-  or sparse matrices, use `scipy.sparse.issparse()` instead. (Previously,
-  these had identical behavior.)
-- Sparse arrays constructed with 64-bit indices will no longer automatically
-  downcast to 32-bit.
+  matrix classes.
+- Division of sparse arrays by a dense array now return sparse arrays
+- `scipy.sparse.isspmatrix` now only return `True` for the sparse matrices instances.
+  `scipy.sparse.issparse` now has to be used instead to check for instances of sparse
+  arrays or instances of sparse matrices.
+- Sparse arrays constructed with int64 indices will no longer automatically
+  downcast to int32.
 - A new `scipy.sparse.diags_array` function was added, which behaves like the
   existing `scipy.sparse.diags` function except that it returns a sparse
   array instead of a sparse matrix.
-- ``argmin`` and ``argmax`` methods now return the correct result when no
-  implicit zeros are present.
+- The `argmin` and `argmax` methods now return the correct result when explicit
+  zeros are present.
 
 `scipy.sparse.linalg` improvements
 ==================================
