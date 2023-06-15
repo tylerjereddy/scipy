@@ -113,8 +113,8 @@ New features
   `isinstance(x, scipy.sparse.sparray)` to select the new sparse array classes,
   while `isinstance(x, scipy.sparse.spmatrix)` selects only the old sparse
   matrix classes.
-- Division of sparse arrays by a dense array now return sparse arrays.
-- `scipy.sparse.isspmatrix` now only return `True` for the sparse matrices instances.
+- Division of sparse arrays by a dense array now returns sparse arrays.
+- `scipy.sparse.isspmatrix` now only returns `True` for the sparse matrices instances.
   `scipy.sparse.issparse` now has to be used instead to check for instances of sparse
   arrays or instances of sparse matrices.
 - Sparse arrays constructed with int64 indices will no longer automatically
@@ -122,7 +122,7 @@ New features
 - A new `scipy.sparse.diags_array` function was added, which behaves like the
   existing `scipy.sparse.diags` function except that it returns a sparse
   array instead of a sparse matrix.
-- The `argmin` and `argmax` methods now return the correct result when explicit
+- The ``argmin`` and ``argmax`` methods now return the correct result when explicit
   zeros are present.
 
 `scipy.sparse.linalg` improvements
