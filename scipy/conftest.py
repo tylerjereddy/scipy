@@ -2,6 +2,7 @@
 import json
 import os
 import warnings
+from functools import wraps
 
 import numpy as np
 import numpy.array_api
@@ -160,10 +161,12 @@ def skip_if_array_api_backend(backend):
         )
         # method gets there as a function so we cannot use inspect.ismethod
         if '.' in func.__qualname__:
-            def wrapped(self, *args, xp, **kwargs):
+            @wraps(func)
+            def wrapped(self, *args, **kwargs):
+                xp = kwargs["xp"]
                 if xp.__name__ == backend:
                     pytest.skip(reason=reason)
-                return func(self, *args, xp, **kwargs)
+                return func(self, *args, **kwargs)
         else:
             def wrapped(*args, xp, **kwargs):  # type: ignore[misc]
                 if xp.__name__ == backend:

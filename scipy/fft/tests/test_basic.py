@@ -274,13 +274,10 @@ class TestFFT1D:
         assert_allclose(expect * (30 * 20 * 10), fft.ihfftn(x, norm="forward"))
 
     @array_api_compatible
+    @skip_if_array_api_backend('torch')
     @pytest.mark.parametrize("op", [fft.fftn, fft.ifftn,
                                     fft.rfftn, fft.irfftn])
     def test_axes_standard(self, op, xp):
-        if xp.__name__ == 'torch':
-            # @skip_if_array_api_backend doesn't seem to work
-            # with @pytest.mark.parametrize
-            pytest.xfail("torch.fft not yet implemented by array-api-compat")
         x = xp.asarray(random((30, 20, 10)))
         axes = [(0, 1, 2), (0, 2, 1), (1, 0, 2),
                 (1, 2, 0), (2, 0, 1), (2, 1, 0)]
