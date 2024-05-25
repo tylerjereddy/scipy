@@ -34,7 +34,6 @@ Highlights of this release
   supersede COBYLA, developed by the Department of Applied Mathematics, The
   Hong Kong Polytechnic University.
 
-
 ************
 New features
 ************
@@ -110,8 +109,54 @@ New features
 
 `scipy.stats` improvements
 ==========================
-- The Irwin-Hall or Uniform Sum distribution has been added as
+- A new function `scipy.stats.power` can be used for simulating the power
+  of a hypothesis test with respect to a specified alternative.
+- The Irwin-Hall (AKA Uniform Sum) distribution has been added as
   `scipy.stats.irwinhall`.
+- Exact p-value calculations of `scipy.stats.mannwhitneyu` are much faster
+  and use less memory.
+- `scipy.stats.pearsonr` now accepts n-D arrays and computes the statistic
+  along a specified ``axis``.
+- `scipy.stats.kstat`, `scipy.stats.kstatvar`, and `scipy.stats.bartlett`
+  are faster at performing calculations along an axis of a large n-D array.
+
+
+*****************
+Array API Support
+*****************
+*Experimental* support for array libraries other than NumPy has been added to
+existing sub-packages in recent version of SciPy. Please consider testing these
+features by setting an environment variable ``SCIPY_ARRAY_API=1`` and providing
+PyTorch, JAX, or CuPy arrays as array arguments.
+
+From previous releases:
+- `scipy.cluster`
+- `scipy.fft`
+
+New in this release:
+- `scipy.constants`
+- `scipy.stats` (partial support)
+  - `scipy.stats.moment`
+  - `scipy.stats.skew`
+  - `scipy.stats.kurtosis`
+  - `scipy.stats.kstat`
+  - `scipy.stats.kstatvar`
+  - `scipy.stats.circmean`
+  - `scipy.stats.circvar`
+  - `scipy.stats.circstd`
+  - `scipy.stats.entropy`
+  - `scipy.stats.variation`
+  - `scipy.stats.sem`
+  - `scipy.stats.ttest_1samp`
+  - `scipy.stats.pearsonr`
+  - `scipy.stats.chisquare`
+  - `scipy.stats.skewtest`
+  - `scipy.stats.kurtosistest`
+  - `scipy.stats.normaltest`
+  - `scipy.stats.jarque_bera`
+  - `scipy.stats.bartlett`
+  - `scipy.stats.power_divergence`
+  - `scipy.stats.monte_carlo_test`
 
 
 *******************
