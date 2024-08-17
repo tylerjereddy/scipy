@@ -17,9 +17,6 @@ def main(ctx):
     # - commit message containing [wheel build]
     ######################################################################
 
-    if env.get("CIRRUS_REPO_FULL_NAME") != "scipy/scipy":
-        return []
-
     if env.get("CIRRUS_CRON", "") == "nightly":
         return fs.read("ci/cirrus_wheels.yml")
 
