@@ -88,16 +88,16 @@ jobs:
           call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
           set FC=ifx
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          python dev.py build -C-Duse-pythran=false -C--vsenv
+          C:\Users\runneradmin\miniconda3\envs\test\python dev.py build -C-Duse-pythran=false -C--vsenv
         shell: cmd
 
       # "import scipy; scipy.test();" fails because
       # scipy/sparse/linalg/_eigen/arpack crashes.
       # Reference - https://github.com/scipy/scipy/issues/20728
       - name: Test scipy.datasets
-        run: python dev.py test -s datasets
+        run: C:\Users\runneradmin\miniconda3\envs\test\python dev.py test -s datasets
         shell: cmd
 
       - name: Test scipy.misc
-        run: python dev.py test -s misc
+        run: C:\Users\runneradmin\miniconda3\envs\test\python dev.py test -s misc
         shell: cmd
