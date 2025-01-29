@@ -20,7 +20,6 @@ jobs:
   test_lint:
     name: Lint
     # If using act to run CI locally the github object does not exist and the usual skipping should not be enforced
-    if: "github.repository == 'scipy/scipy' || github.repository == ''"
     runs-on: ubuntu-22.04
     strategy:
       matrix:
