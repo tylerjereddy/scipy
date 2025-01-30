@@ -32,7 +32,6 @@ jobs:
     # the usual skipping should not be enforced
     if: >
       needs.get_commit_message.outputs.message == 1
-      && (github.repository == 'scipy/scipy' || github.repository == '')
     runs-on: macos-latest
     strategy:
       matrix:
@@ -68,7 +67,7 @@ jobs:
       with:
         path: ${{ steps.prep-ccache.outputs.dir }}
         key:  ${{ github.workflow }}-${{ matrix.python-version }}-ccache-macos-${{ steps.prep-ccache.outputs.timestamp }}
-        # This evaluates to `macOS Tests-3.10-ccache-macos-` which is not
+        # This evaluates to `macOS Tests-3.11-ccache-macos-` which is not
         # unique. As the CI matrix is expanded, this will need to be updated to
         # be unique so that the cache is not restored from a different job altogether.
         restore-keys: |
@@ -137,7 +136,6 @@ jobs:
     # the usual skipping should not be enforced
     if: >
       needs.get_commit_message.outputs.message == 1
-      && (github.repository == 'scipy/scipy' || github.repository == '')
     runs-on: macos-14
     strategy:
       matrix:
@@ -182,7 +180,6 @@ jobs:
     # the usual skipping should not be enforced
     if: >
       needs.get_commit_message.outputs.message == 1
-      && (github.repository == 'scipy/scipy' || github.repository == '')
     runs-on: macos-15
     strategy:
       matrix:
