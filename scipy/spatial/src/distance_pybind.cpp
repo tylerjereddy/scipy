@@ -566,7 +566,6 @@ py::array_t<double> compute_abs_difference(const py::array_t<double>& a, const p
     const auto *b_ptr = static_cast<double *>(buf_b.ptr);
     const auto result_ptr = static_cast<double *>(buf_result.ptr);
 
-#pragma omp parallel for
     for (Py_ssize_t i = 0; i < rows_a; ++i) {
         for (Py_ssize_t j = 0; j < rows_b; ++j) {
             for (Py_ssize_t k = 0; k < cols_a; ++k) {
