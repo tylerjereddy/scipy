@@ -1,5 +1,4 @@
 import copy
-
 import numpy as np
 import pytest
 from pytest import raises, warns
@@ -911,3 +910,21 @@ class TestFindPeaksCwt:
         found_locs = find_peaks_cwt(test_data, widths)
 
         np.testing.assert_equal(found_locs, 32)
+
+    def test_gh_23684(self):
+        rng = np.random.default_rng(50)
+        x = np.arange(500)
+
+        def lorentz(x, height, width, loc):
+            return height / (1 + np.pow((x-loc)/width, 2))
+
+        # synthesize noisy signal with peaks
+        noise = rng.standard_normal((500,)) * 1e-3
+        signal = (lorentz(x, 0.3, 10, 100) +
+                  lorentz(x, 0.4, 15, 250) +
+                  lorentz(x, 0.2, 5, 400) + noise)
+
+        # find the 3 peaks
+        cwt_scales = np.geomspace(1, 20, 16)
+        peaks = find_peaks_cwt(signal, cwt_scales, min_snr=4, noise_perc=90)
+        xp_assert_equal(peaks, [100, 250, 400])
