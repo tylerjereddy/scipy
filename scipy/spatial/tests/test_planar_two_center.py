@@ -33,6 +33,28 @@ import pytest
      [0, 0], # second center
      1, # radius
     ),
+    # when the input points fall on two non-overlapping circles of the same radius
+    # then the resulting planar_k_center disks should correspond to the centers/radii
+    # of those input circles
+    (
+    [
+    # input points lying on "circle 1," centered at the origin
+    # with radius 2:
+    [0, 2],
+    [2, 0],
+    [0, -2],
+    [-2, 0],
+    # input points lying on "circle 2," centered at +100 x coordinate
+    # but otherwise the same (radius of 2):
+    [100, 2],
+    [102, 0],
+    [100, -2],
+    [98, 0],
+    ],
+    [0, 0], # one disk is centered at the origin
+    [100, 0], # the other disk is centered +100 from the origin
+    2,
+    )
 ])
 def test_simple_cases(points, exp_e0, exp_e1, exp_r):
     # verify cases where the expected outcome can be
