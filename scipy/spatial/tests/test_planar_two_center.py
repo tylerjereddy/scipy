@@ -1,5 +1,6 @@
-from scipy.spatial import planar_k_center
+import math
 
+from scipy.spatial import planar_k_center
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -15,6 +16,22 @@ import pytest
      [0, 2],
      [0, 2],
      2,
+    ),
+    # when the input points are on a perfect circle centered at the
+    # origin (in this case, the unit circle), it is clear that both
+    # disks must coincide exactly with that circle of points to be
+    # both congruent and to minimize thier radii
+    ([[0, 1],
+     [math.sqrt(2)/2, math.sqrt(2)/2],
+     [1, 0],
+     [math.sqrt(2)/2, -math.sqrt(2)/2],
+     [0, -1],
+     [-math.sqrt(2)/2, -math.sqrt(2)/2],
+     [-1, 0],
+     [-math.sqrt(2)/2, math.sqrt(2)/2]],
+     [0, 0], # first center
+     [0, 0], # second center
+     1, # radius
     ),
 ])
 def test_simple_cases(points, exp_e0, exp_e1, exp_r):
