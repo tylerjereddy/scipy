@@ -55,6 +55,28 @@ import pytest
     [100, 0], # the other disk is centered +100 from the origin
     2,
     )
+    # when the input points fall on two non-overlapping input circles of
+    # different radii, planar_k_center should return two disks that are centered
+    # at the centers of each of those two circles, but with the radius of each
+    # disk set to the larger of the radii so that all points get covered while
+    # simultaneously satisfying the requirement for congruent disks
+
+    # input points lying on "circle 1," centered at the origin
+    # with radius 2:
+    [0, 2],
+    [2, 0],
+    [0, -2],
+    [-2, 0],
+    # input points lying on "circle 2," centered at +100 x coordinate
+    # and with DOUBLE radius of circle 1 (radius of 4)
+    [100, 4],
+    [104, 0],
+    [100, -4],
+    [96, 0],
+    ],
+    [0, 0], # one disk is centered at the origin
+    [100, 0], # the other disk is centered +100 from the origin
+    4, # the largest of the radii is preserved for the returned disks
 ])
 def test_simple_cases(points, exp_e0, exp_e1, exp_r):
     # verify cases where the expected outcome can be
