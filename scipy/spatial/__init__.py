@@ -115,6 +115,7 @@ from ._spherical_voronoi import SphericalVoronoi
 from ._plotutils import *
 from ._procrustes import procrustes
 from ._geometric_slerp import geometric_slerp
+from ._planar_two_center import find_farthest_pair, planar_k_center
 
 # Deprecated namespaces, to be removed in v2.0.0
 from . import ckdtree, kdtree, qhull

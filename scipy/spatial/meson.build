@@ -108,7 +108,8 @@ py3.install_sources([
     'ckdtree.py',
     'distance.py',
     'kdtree.py',
-    'qhull.py'
+    'qhull.py',
+    '_planar_two_center.py'
   ],
   subdir: 'scipy/spatial'
 )

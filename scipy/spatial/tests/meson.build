@@ -7,7 +7,8 @@ py3.install_sources([
     'test_kdtree.py',
     'test_qhull.py',
     'test_slerp.py',
-    'test_spherical_voronoi.py'
+    'test_spherical_voronoi.py',
+    'test_planar_two_center.py'
   ],
   subdir: 'scipy/spatial/tests',
   install_tag: 'tests'

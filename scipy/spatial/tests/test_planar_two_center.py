@@ -1,6 +1,6 @@
 import math
 
-from scipy.spatial import planar_k_center
+from scipy.spatial import planar_k_center, find_farthest_pair
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -54,16 +54,17 @@ import pytest
     [0, 0], # one disk is centered at the origin
     [100, 0], # the other disk is centered +100 from the origin
     2,
-    )
+    ),
     # when the input points fall on two non-overlapping input circles of
     # different radii, planar_k_center should return two disks that are centered
     # at the centers of each of those two circles, but with the radius of each
     # disk set to the larger of the radii so that all points get covered while
     # simultaneously satisfying the requirement for congruent disks
 
+    (
     # input points lying on "circle 1," centered at the origin
     # with radius 2:
-    [0, 2],
+    [[0, 2],
     [2, 0],
     [0, -2],
     [-2, 0],
@@ -77,6 +78,7 @@ import pytest
     [0, 0], # one disk is centered at the origin
     [100, 0], # the other disk is centered +100 from the origin
     4, # the largest of the radii is preserved for the returned disks
+    ),
 ])
 def test_simple_cases(points, exp_e0, exp_e1, exp_r):
     # verify cases where the expected outcome can be
@@ -85,3 +87,14 @@ def test_simple_cases(points, exp_e0, exp_e1, exp_r):
     assert_allclose(result.e0, exp_e0)
     assert_allclose(result.e1, exp_e1)
     assert_allclose(result.r, exp_r)
+
+
+@pytest.mark.parametrize("points, exp_max_dist", [
+    # the farthest distance in a "unit square" is the
+    # diagonal (root 2):
+    ([[0, 0], [1, 0], [1, 1], [0, 1]],
+     math.sqrt(2)),
+])
+def test_find_farthest_pair(points, exp_max_dist):
+    actual = find_farthest_pair(points)
+    assert_allclose(actual, exp_max_dist)
