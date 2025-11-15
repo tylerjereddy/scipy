@@ -79,4 +79,8 @@ def find_farthest_pair(S):
 
 
 def planar_k_center(points, k):
-    pass
+    # algorithm preprocessing starts with O(n log n)
+    # identification of the max distance points and their
+    # midpoint
+    max_dist, max_pair = find_farthest_pair(points)
+    a_b_midpoint = (max_pair[0] + max_pair[1]) / 2
