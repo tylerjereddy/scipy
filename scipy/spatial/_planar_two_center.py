@@ -69,10 +69,13 @@ def find_farthest_pair(S):
                 antipodal_pairs.append([i, j + 1])
     max_dist = 0
     for pair in antipodal_pairs:
-        dist = euclidean(hull_coordinates[pair[0]], hull_coordinates[pair[1]])
+        x = hull_coordinates[pair[0]]
+        y = hull_coordinates[pair[1]]
+        dist = euclidean(x, y)
         if dist > max_dist:
             max_dist = dist
-    return max_dist
+            max_pair = [x, y]
+    return max_dist, max_pair
 
 
 def planar_k_center(points, k):

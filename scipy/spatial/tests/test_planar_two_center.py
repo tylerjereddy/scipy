@@ -2,7 +2,7 @@ import math
 
 from scipy.spatial import planar_k_center, find_farthest_pair
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 import pytest
 
 
@@ -89,12 +89,15 @@ def test_simple_cases(points, exp_e0, exp_e1, exp_r):
     assert_allclose(result.r, exp_r)
 
 
-@pytest.mark.parametrize("points, exp_max_dist", [
+@pytest.mark.parametrize("points, exp_max_dist, exp_max_pair", [
     # the farthest distance in a "unit square" is the
-    # diagonal (root 2):
+    # diagonal (root 2); technically there are two such
+    # possible diagonals; we check that one of them is detected:
     ([[0, 0], [1, 0], [1, 1], [0, 1]],
-     math.sqrt(2)),
+     math.sqrt(2),
+     [[0, 0], [1, 1]]),
 ])
-def test_find_farthest_pair(points, exp_max_dist):
-    actual = find_farthest_pair(points)
-    assert_allclose(actual, exp_max_dist)
+def test_find_farthest_pair(points, exp_max_dist, exp_max_pair):
+    actual_max_dist, actual_max_pair = find_farthest_pair(points)
+    assert_allclose(actual_max_dist, exp_max_dist)
+    assert_array_equal(actual_max_pair, exp_max_pair)
