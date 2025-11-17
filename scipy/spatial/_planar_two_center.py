@@ -1,3 +1,6 @@
+import math
+
+
 import numpy as np
 from scipy.spatial import ConvexHull
 from scipy.spatial.distance import euclidean
@@ -78,7 +81,7 @@ def find_farthest_pair(S):
     return max_dist, max_pair
 
 
-def planar_k_center(points, k):
+def planar_k_center(points, k, c: int = 100):
     # scale points to the unit disk, based on paper,
     # then scale back after algorithm completes
     # first, move points to origin
@@ -97,6 +100,16 @@ def planar_k_center(points, k):
     # midpoint
     max_dist, max_pair = find_farthest_pair(scaled_points)
     a_b_midpoint = (max_pair[0] + max_pair[1]) / 2
+
+    # generate A, the grid of `c` points around the a_b_midpoint (o):
+    theta = (2 * math.pi) / c
+    A = np.ones((c, 2), dtype=np.float64)
+    i = np.arange(1, c + 1)
+    A[:, 0] *= (i * theta)
+    A[:, 1] *= (i * theta)
+    A[:, 0] = np.cos(A[:, 0])
+    A[:, 1] = np.sin(A[:, 1])
+    # that completes the perigon around "o"
 
     # TODO: translate and scale final results from unit disk
     # back to original data scale/position
