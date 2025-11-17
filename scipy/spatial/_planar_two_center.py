@@ -79,8 +79,24 @@ def find_farthest_pair(S):
 
 
 def planar_k_center(points, k):
+    # scale points to the unit disk, based on paper,
+    # then scale back after algorithm completes
+    # first, move points to origin
+    points_center = np.mean(points, axis=0)
+    points_translated = points - points_center
+    # find the most distant point from origin
+    # and scale down accordingly
+    max_dist_from_origin = np.max(np.linalg.norm(points, axis=1))
+    if max_dist_from_origin > 0:
+        scaled_points = points_translated / max_dist_from_origin
+    else:
+        scaled_points = points_translated
+
     # algorithm preprocessing starts with O(n log n)
     # identification of the max distance points and their
     # midpoint
-    max_dist, max_pair = find_farthest_pair(points)
+    max_dist, max_pair = find_farthest_pair(scaled_points)
     a_b_midpoint = (max_pair[0] + max_pair[1]) / 2
+
+    # TODO: translate and scale final results from unit disk
+    # back to original data scale/position
