@@ -505,7 +505,7 @@ class VoronoiBench(Benchmark):
         Voronoi(self.points, furthest_site=furthest_site)
 
 class Hausdorff(Benchmark):
-    params = [10, 100, 1000]
+    params = [10, 100, 1000, 100_000]
     param_names = ['num_points']
 
     def setup(self, num_points):

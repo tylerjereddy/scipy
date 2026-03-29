@@ -15,7 +15,7 @@ Directed Hausdorff Code
 import numpy as np
 cimport numpy as np
 cimport cython
-from libc.math cimport sqrt
+from libc.math cimport sqrt, INFINITY
 
 np.import_array()
 
@@ -28,9 +28,12 @@ def directed_hausdorff(const double[:,::1] ar1, const double[:,::1] ar2, seed=0)
     cdef Py_ssize_t N1 = ar1.shape[0]
     cdef Py_ssize_t N2 = ar2.shape[0]
     cdef int data_dims = ar1.shape[1]
-    cdef Py_ssize_t i, j, k
+    cdef Py_ssize_t i, j, k, w, z
     cdef Py_ssize_t j_store = 0, i_ret = 0, j_ret = 0
+    cdef int max_pre
     cdef np.ndarray[np.int64_t, ndim=1, mode='c'] resort1, resort2
+    cdef np.ndarray[np.float64_t, ndim=1, mode='c'] inf_array
+    cdef np.float64_t[:] tmds
 
     # shuffling the points in each array generally increases the likelihood of
     # an advantageous break in the inner search loop and never decreases the
@@ -46,9 +49,37 @@ def directed_hausdorff(const double[:,::1] ar1, const double[:,::1] ar2, seed=0)
     rng.shuffle(resort2)
     ar1 = np.asarray(ar1)[resort1]
     ar2 = np.asarray(ar2)[resort2]
+    inf_array = np.empty(N1, dtype=np.float64)
+    tmds = inf_array
+
+    for i in range(N1):
+        tmds[i] = INFINITY
+
+    cmax = 0
+    if N1 + N2 > 2000:
+        max_pre = 100
+        if max_pre > N2:
+            max_pre = N2
+
+        for w in range(max_pre):
+            cmin = INFINITY
+            for z in range(N1):
+                d = 0
+                for k in range(data_dims):
+                    d += (ar2[w, k] - ar1[z, k])**2
+                if d < tmds[z]:
+                    tmds[z] = d
+                if d < cmin:
+                    cmin = d
+                if d < cmax:
+                    break
+            if cmin >= cmax:
+                cmax = cmin
 
     cmax = 0
     for i in range(N1):
+        if tmds[i] < cmax:
+            continue
         cmin = np.inf
         for j in range(N2):
             d = 0
